@@ -8,6 +8,10 @@
  *
  * @param username A character array storing the username of the account.
  *                 Maximum length is 1000 characters (including null terminator).
+ * @param password A character array storing the password of the account.
+ *                Maximum length is 1000 characters (including null terminator).
+ * @param root_dir A character array storing the root directory associated with the account.
+ *                Maximum length is 1000 characters (including null terminator).
  *
  * @param status   An integer representing the account status.
  *
@@ -18,6 +22,8 @@
 typedef struct
 {
     char username[1000];
+    char password[1000];
+    char root_dir[1000];
     int status; // 0 is banned, 1 is active
 } Account;
 
@@ -26,6 +32,9 @@ extern Account *users;
 extern int count;
 extern int capacity;
 extern int is_logged_in; // 0 is not logged in, 1 is logged in
+extern char current_username[1000]; // Current logged in username
+extern char current_root_dir[1000]; // Current logged in user's root directory
+extern char pending_username[1000]; // Username waiting for password verification
 
 /**
  * @brief Read account data from "account.txt" into memory.
@@ -38,7 +47,10 @@ extern int is_logged_in; // 0 is not logged in, 1 is logged in
  *
  * @param username: a string (≤ 100 characters, no whitespace allowed).
  * 
- * 
+ * @param password: a string (≤ 100 characters, no whitespace allowed).
+ *
+ * @param root_dir: a string (≤ 100 characters, no whitespace allowed).
+ *
  * @param status  : must be either 0 or 1.
  *
  * @details

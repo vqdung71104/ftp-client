@@ -15,7 +15,21 @@ void logout();
 /**
  * @brief Function for handling login request
  */
+/**
+ * @brief Function for handling login request (username validation)
+ * 
+ * @param command_value username to validate
+ * @param client_socket socket descriptor
+ */
 void login(char *command_value, int client_socket);
+
+/**
+ * @brief Function for handling password verification
+ * 
+ * @param password password to verify
+ * @param client_socket socket descriptor
+ */
+void verify_password(char *password, int client_socket);
 
 /**
  * @brief Validate a given username against the loaded account list.

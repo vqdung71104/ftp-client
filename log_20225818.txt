@@ -13,3 +13,17 @@
 [02/11/2025 16:24:16]$127.0.0.1:46620$CONNECT$+OK Welcome to file server
 [02/11/2025 16:24:20]$127.0.0.1:46620$USER user1\r\n$Login attempt
 [02/11/2025 16:24:26]$127.0.0.1:46620$UPLD Ronaldobeo.jpeg 8285 \r\n$+OK Successful upload
+[02/11/2025 17:29:55]$127.0.0.1:57178$CONNECT$+OK Welcome to file server
+[02/11/2025 17:30:04]$127.0.0.1:57178$USER user1\r\n$Login attempt
+[02/11/2025 17:31:48]$127.0.0.1:39090$CONNECT$+OK Welcome to file server
+[02/11/2025 17:31:55]$127.0.0.1:39090$USER user1 123456\r\n$Login attempt
+[02/11/2025 17:32:01]$127.0.0.1:39090$USER user1\r\n$Login attempt
+[02/11/2025 17:53:50]$127.0.0.1:39432$CONNECT$+OK Welcome to file server
+[02/11/2025 17:53:53]$127.0.0.1:39432$USER user1\r\n$Login attempt - username
+[02/11/2025 17:53:58]$127.0.0.1:39432$PASS 123456\r\n$Login attempt - password
+[02/11/2025 17:54:13]$127.0.0.1:39432$POST leu leu\r\n$Post attempt
+[02/11/2025 17:54:24]$127.0.0.1:39432$UPLD Ronaldogay.jpeg 7514 \r\n$+OK Successful upload
+[02/11/2025 17:58:49]$127.0.0.1:45890$CONNECT$+OK Welcome to file server
+[02/11/2025 17:58:54]$127.0.0.1:45890$USER user1\r\n$Login attempt - username
+[02/11/2025 17:58:57]$127.0.0.1:45890$PASS 123456\r\n$Login attempt - password
+[02/11/2025 17:59:07]$127.0.0.1:45890$UPLD Ronaldobeo.jpeg 8285 \r\n$+OK Successful upload

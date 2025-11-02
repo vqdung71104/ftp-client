@@ -8,6 +8,9 @@
 int count = 0;
 int capacity = 10;
 int is_logged_in = 0;
+char current_username[1000] = "";
+char current_root_dir[1000] = "";
+char pending_username[1000] = "";
 
 Account *users = NULL;
 
@@ -46,9 +49,9 @@ int read_file_data()
             }
         }
 
-        if (sscanf(line, "%s %d", users[count].username, &users[count].status) != 2)
+        if (sscanf(line, "%s %s %s %d", users[count].username, users[count].password, users[count].root_dir, &users[count].status) != 4)
         {
-            printf("Invalid username or user's status at line: %d\n", count + 1);
+            printf("Invalid username, password, root_dir or user's status at line: %d\n", count + 1);
             fclose(fp);
             return 0;
         }
@@ -56,6 +59,20 @@ int read_file_data()
         if (strlen(users[count].username) > 100)
         {
             printf("User name can NOT exceed 100 characters (at line %d)\n", count + 1);
+            fclose(fp);
+            return 0;
+        }
+        
+        if( strlen(users[count].password) > 100)
+        {
+            printf("Password can NOT exceed 100 characters (at line %d)\n", count + 1);
+            fclose(fp);
+            return 0;
+        }
+
+        if( strlen(users[count].root_dir) > 100)
+        {
+            printf("Root directory can NOT exceed 100 characters (at line %d)\n", count + 1);
             fclose(fp);
             return 0;
         }

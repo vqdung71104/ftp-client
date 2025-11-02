@@ -47,10 +47,12 @@ Trong đó:
 
 Ví dụ:
 ```
-admin 1
-user1 1
-user2 0
-testuser 1
+admin 123456 /mnt/d/ftp-client/TCP_Server 1
+user1 123456 /mnt/d/ftp-client/TCP_Client 1
+user2 123456 /mnt/d/ftp-client/TCP_Client 0
+banned_user 123456 /mnt/d/ftp-client/TCP_Client 0
+testuser 123456 /mnt/d/ftp-client/TCP_Client 1
+
 ```
 
 ### 3. Chạy server

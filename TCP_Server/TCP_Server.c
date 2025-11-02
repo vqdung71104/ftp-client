@@ -185,7 +185,13 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
             if (strcmp(command, "USER") == 0)
             {
                 login(command_value, conn_sock);
-                const char *response_log = "Login attempt";
+                const char *response_log = "Login attempt - username";
+                log_message(client_addr_str, request_log, response_log);
+            }
+            else if (strcmp(command, "PASS") == 0)
+            {
+                verify_password(command_value, conn_sock);
+                const char *response_log = "Login attempt - password";
                 log_message(client_addr_str, request_log, response_log);
             }
             else if (strcmp(command, "POST") == 0)
@@ -221,6 +227,9 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
                 {
                     return_msg = "130: Logout successfully\r\n";
                     is_logged_in = 0;
+                    // Clear current user info
+                    memset(current_username, 0, sizeof(current_username));
+                    memset(current_root_dir, 0, sizeof(current_root_dir));
                 }
                 send_all(conn_sock, return_msg, strlen(return_msg));
                 const char *response_log = return_msg;

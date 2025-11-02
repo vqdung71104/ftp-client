@@ -201,11 +201,21 @@ void simple_menu(int sockfd, char *recv_buf)
 void send_login_command(int sockfd, char *recv_buf)
 {
     char username[80];
+    char password_msg[80];
+    
+    // Step 1: Send username
     strcpy(username, "USER ");
     printf("Please enter a username: ");
-
-    // 4. Send command to server and wait for response
     send_and_response(sockfd, username, recv_buf);
+    
+    // Check if server asks for password
+    if (strncmp(recv_buf, "111:", 4) == 0) // Username OK, need password
+    {
+        // Step 2: Send password
+        strcpy(password_msg, "PASS ");
+        printf("Please enter password: ");
+        send_and_response(sockfd, password_msg, recv_buf);
+    }
 }
 
 void send_bye_command(int sockfd, char *recv_buf)

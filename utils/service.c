@@ -32,30 +32,94 @@ int user_validation(char *username)
     return valid_user;
 }
 
+int password_validation(char *username, char *password)
+{
+    for (int i = 0; i < count; i++)
+    {
+        int cmp = strcmp(users[i].username, username);
+        if (cmp == 0)
+        {
+            int pass_cmp = strcmp(users[i].password, password);
+            if (pass_cmp == 0)
+            {
+                return 1; // correct password
+            }
+            else
+            {
+                return 0; // incorrect password
+            }
+        }
+    }
+    return 0; // user not found
+}
+
 void login(char *command_value, int client_socket)
 {
     int user_validation_result = user_validation(command_value);
     char *return_msg;
-    if (is_logged_in == 0)
-    {
-        if (user_validation_result == 1) // User exist
-        {
-            return_msg = "110: Account exist and active\r\n";
-            is_logged_in = 1;
-        }
-        else if (user_validation_result == 0) // User does not exist
-        {
-            return_msg = "212: Account does NOT exist\r\n";
-        }
-        else if (user_validation_result == -1) // User exist but banned
-        {
-            return_msg = "211: Account IS banned\r\n";
-        }
-    }
-    else
+    
+    if (is_logged_in == 1)
     {
         return_msg = "213: You have already logged in\r\n";
     }
+    else if (user_validation_result == 1) // User exist and active
+    {
+        return_msg = "111: Username OK, need password\r\n";
+        strcpy(pending_username, command_value);
+    }
+    else if (user_validation_result == 0) // User does not exist
+    {
+        return_msg = "212: Account does NOT exist\r\n";
+        memset(pending_username, 0, sizeof(pending_username));
+    }
+    else if (user_validation_result == -1) // User exist but banned
+    {
+        return_msg = "211: Account IS banned\r\n";
+        memset(pending_username, 0, sizeof(pending_username));
+    }
+    
+    send_all(client_socket, return_msg, strlen(return_msg));
+    usleep(1000);
+}
+
+void verify_password(char *password, int client_socket)
+{
+    char *return_msg;
+    
+    if (is_logged_in == 1)
+    {
+        return_msg = "213: You have already logged in\r\n";
+    }
+    else if (strlen(pending_username) == 0)
+    {
+        return_msg = "220: Please send username first (USER command)\r\n";
+    }
+    else
+    {
+        int password_validation_result = password_validation(pending_username, password);
+        if (password_validation_result == 1)
+        {
+            return_msg = "110: Login successful\r\n";
+            is_logged_in = 1;
+            // Save current user info
+            strcpy(current_username, pending_username);
+            for (int i = 0; i < count; i++)
+            {
+                if (strcmp(users[i].username, pending_username) == 0)
+                {
+                    strcpy(current_root_dir, users[i].root_dir);
+                    break;
+                }
+            }
+            memset(pending_username, 0, sizeof(pending_username));
+        }
+        else
+        {
+            return_msg = "214: Incorrect password\r\n";
+            memset(pending_username, 0, sizeof(pending_username));
+        }
+    }
+    
     send_all(client_socket, return_msg, strlen(return_msg));
     usleep(1000);
 }
