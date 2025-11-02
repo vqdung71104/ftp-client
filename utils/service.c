@@ -1,0 +1,174 @@
+#define _DEFAULT_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "service.h"
+#include "account.h"
+#include "utils.h"
+#include "logging.h"
+
+int user_validation(char *username)
+{
+    int valid_user = 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        int cmp = strcmp(users[i].username, username);
+        if (cmp == 0)
+        {
+            if (users[i].status == 0)
+            {
+                return -1;
+            }
+            else
+            {
+                valid_user = 1;
+                break;
+            }
+        }
+    }
+    return valid_user;
+}
+
+void login(char *command_value, int client_socket)
+{
+    int user_validation_result = user_validation(command_value);
+    char *return_msg;
+    if (is_logged_in == 0)
+    {
+        if (user_validation_result == 1) // User exist
+        {
+            return_msg = "110: Account exist and active\r\n";
+            is_logged_in = 1;
+        }
+        else if (user_validation_result == 0) // User does not exist
+        {
+            return_msg = "212: Account does NOT exist\r\n";
+        }
+        else if (user_validation_result == -1) // User exist but banned
+        {
+            return_msg = "211: Account IS banned\r\n";
+        }
+    }
+    else
+    {
+        return_msg = "213: You have already logged in\r\n";
+    }
+    send_all(client_socket, return_msg, strlen(return_msg));
+    usleep(1000);
+}
+
+void post_article(int client_socket, char *command_value)
+{
+    char return_msg[512];
+    // post article cmd
+    if (is_logged_in == 0)
+    { // have not logged in yet
+        strcpy(return_msg, "221: You have NOT logged in\r\n");
+        send_all(client_socket, return_msg, strlen(return_msg));
+    }
+    else // logged in
+    {
+        strcpy(return_msg, "120: Post successfully. With content: ");
+        strcat(return_msg, command_value);
+        strcat(return_msg, "\r\n");
+        send_all(client_socket, return_msg, strlen(return_msg));
+    }
+    usleep(1000);
+}
+
+void handle_upload_file(int conn_sock, const char *client_addr_str, const char *storage_dir, char *command_value, const char *request_log)
+{
+    char filename[512];
+    unsigned long file_size;
+    const char *response_log;
+    char file_buffer[16384];
+
+    /*
+     * Expected format from command_value: <filename> <filesize>
+     * We find the last space to separate filename and filesize
+     * so the filename may contain spaces.
+     */
+    char *last_space = strrchr(command_value, ' ');
+    if (last_space == NULL)
+    {
+        const char *err_msg = "ERR Invalid command\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR Invalid command";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
+
+    *last_space = '\0';
+    char *size_str = last_space + 1;
+    char *endptr = NULL;
+    unsigned long fs = strtoul(size_str, &endptr, 10);
+    //if (endptr == size_str || *endptr != '\0')
+    //{
+    //    const char *err_msg = "ERR Invalid filesize\r\n";
+    //    send_all(conn_sock, err_msg, strlen(err_msg));
+    //    response_log = "-ERR Invalid filesize";
+    //    log_message(client_addr_str, request_log, response_log);
+    //    return;
+    //}
+
+    file_size = fs;
+    strncpy(filename, command_value, sizeof(filename) - 1);
+    filename[sizeof(filename) - 1] = '\0';
+
+    char filepath[1024];
+    snprintf(filepath, sizeof(filepath), "%s/%s", storage_dir, filename);
+
+    FILE *fp = fopen(filepath, "wb");
+
+    if (fp == NULL)
+    {
+        perror("fopen() error");
+        const char *err_msg = "ERR Cannot create file\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR Cannot create file";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
+
+    const char *ok_msg = "+OK Please send file\r\n";
+    send_all(conn_sock, ok_msg, strlen(ok_msg));
+
+    /* Step 4: receive file in chunks until we get file_size bytes */
+    unsigned long total_received = 0;
+    int bytes_in_chunk;
+
+    while (total_received < file_size)
+    {
+        bytes_in_chunk = recv(conn_sock, file_buffer, 16384, 0);
+        if (bytes_in_chunk <= 0)
+        {
+            printf("Client %s disconnected while transfering file.\n", client_addr_str);
+            break;
+        }
+        fwrite(file_buffer, 1, bytes_in_chunk, fp);
+        total_received += bytes_in_chunk;
+    }
+    fclose(fp);
+
+    /* Step 5: send the final result */
+    if (total_received == file_size)
+    {
+        const char *success_msg = "OK Successful upload\r\n";
+        send_all(conn_sock, success_msg, strlen(success_msg));
+        response_log = "+OK Successful upload";
+        printf("Client %s has uploaded file %s successfully.\n", client_addr_str, filename);
+    }
+    else
+    {
+        const char *fail_msg = "ERR Upload failed\r\n";
+        send_all(conn_sock, fail_msg, strlen(fail_msg));
+        response_log = "-ERR Upload failed";
+        remove(filepath); /* remove incomplete file */
+        printf("Client %s upload file %s failed.\n", client_addr_str, filename);
+    }
+
+    log_message(client_addr_str, request_log, response_log);
+}

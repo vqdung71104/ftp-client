@@ -1,0 +1,5 @@
+admin 1
+user1 1
+user2 0
+banned_user 0
+testuser 1

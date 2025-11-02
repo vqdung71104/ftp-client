@@ -1,0 +1,74 @@
+#ifndef SERVICE_H
+#define SERVICE_H
+
+
+/**
+ * @brief Function for posting message
+ */
+void post_message();
+
+/**
+ * @brief Function for logging out
+ */
+void logout();
+
+/**
+ * @brief Function for handling login request
+ */
+void login(char *command_value, int client_socket);
+
+/**
+ * @brief Validate a given username against the loaded account list.
+ *
+ * This function checks whether the provided username exists in the
+ * global `users` array and returns a code indicating its validity
+ * and status.
+ *
+ * @details
+ *  - Iterate through all loaded accounts (0 → count-1).
+ *  - Compare each stored username with the given input.
+ *      - If a match is found:
+ *          - If account status == 0 → return -1 (account is banned).
+ *          - If account status == 1 → set valid_user = 1 and stop search.
+ *  - If no match is found → valid_user remains 0.
+ *
+ * @param username The username string to validate.
+ *
+ * @note Uses global variables:
+ *
+ *  - `users` (array of Account)
+ *
+ *  - `count` (number of loaded accounts)
+ *
+ * @return int
+ *
+ *  -  1 : Valid user (exists and active)
+ *
+ *  -  0 : User does not exist
+ *
+ *  - -1 : User exists but is banned
+ *
+ */
+int user_validation(char *username);
+
+/**
+ * @brief Function for handling posting article 
+ * 
+ * @param client_socket socket descriptor for client socket
+ * 
+ * @param command_value msg for posting article
+ */
+void post_article(int client_socket, char *command_value);
+
+/**
+ * @brief Function for handling file upload
+ * 
+ * @param conn_sock client socket descriptor
+ * @param client_addr_str client address string
+ * @param storage_dir directory to store uploaded files
+ * @param command_value command value containing filename and filesize
+ * @param request_log request log string
+ */
+void handle_upload_file(int conn_sock, const char *client_addr_str, const char *storage_dir, char *command_value, const char *request_log);
+
+#endif
