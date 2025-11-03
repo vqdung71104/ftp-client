@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "service.h"
 #include "account.h"
@@ -150,6 +152,16 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, const char *
     const char *response_log;
     char file_buffer[16384];
 
+    // Check if user is logged in
+    if (is_logged_in == 0)
+    {
+        const char *err_msg = "221: You have NOT logged in\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR Not logged in";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
+
     /*
      * Expected format from command_value: <filename> <filesize>
      * We find the last space to separate filename and filesize
@@ -182,8 +194,12 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, const char *
     strncpy(filename, command_value, sizeof(filename) - 1);
     filename[sizeof(filename) - 1] = '\0';
 
+    // Use current user's root directory instead of storage_dir
     char filepath[1024];
-    snprintf(filepath, sizeof(filepath), "%s/%s", storage_dir, filename);
+    snprintf(filepath, sizeof(filepath), "%s/%s", current_root_dir, filename);
+    
+    // Create user directory if not exists
+    mkdir(current_root_dir, 0755);
 
     FILE *fp = fopen(filepath, "wb");
 

@@ -111,11 +111,14 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
 
 **3. Upload file**
 - Nhập đường dẫn file cần upload
-- File sẽ được lưu vào thư mục storage của server
+- **Yêu cầu đã đăng nhập**
+- File sẽ được lưu vào **thư mục làm việc (root_dir) của user** đã đăng nhập
+- Ví dụ: Nếu đăng nhập là user1 với root_dir `/mnt/d/ftp-client/TCP_Client`, file sẽ được upload vào `/mnt/d/ftp-client/TCP_Client/`
 - Phản hồi:
   - `+OK Please send file` - Server sẵn sàng nhận file
   - `OK Successful upload` - Upload thành công
   - `ERR Upload failed` - Upload thất bại
+  - `221: You have NOT logged in` - Chưa đăng nhập
 
 **4. Logout**
 - Đăng xuất khỏi hệ thống
