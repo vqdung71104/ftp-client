@@ -58,6 +58,14 @@ void send_article_command(int sockfd, char *recv_buf);
  */
 void send_upload_command(int sockfd, char *recv_buf);
 
+/**
+ * @brief Function for changing working directory
+ *
+ * @param sockfd socket descriptor
+ * @param recv_buf buffer to save the result
+ */
+void send_chdir_command(int sockfd, char *recv_buf);
+
 int main(int argc, char *argv[])
 {
     if (argc != 3)
@@ -163,7 +171,8 @@ void simple_menu(int sockfd, char *recv_buf)
         printf("2. Post message\n");
         printf("3. Upload file\n");
         printf("4. Logout\n");
-        printf("5. Exit\n");
+        printf("5. Change working directory\n");
+        printf("6. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
         // Consume the newline character left in the buffer by scanf
@@ -185,6 +194,9 @@ void simple_menu(int sockfd, char *recv_buf)
             send_bye_command(sockfd, recv_buf);
             break;
         case 5:
+            send_chdir_command(sockfd, recv_buf);
+            break;
+        case 6:
             // exit_program();
             break;
         default:
@@ -195,7 +207,7 @@ void simple_menu(int sockfd, char *recv_buf)
         while (getchar() != '\n')
             ; // Wait for user to press Enter
 
-    } while (choice != 5);
+    } while (choice != 6);
 }
 
 void send_login_command(int sockfd, char *recv_buf)
@@ -337,4 +349,76 @@ void send_upload_command(int sockfd, char *recv_buf)
     }
     buffer[received_bytes] = '\0';
     printf("Result: %s\n", buffer);
+}
+
+void send_chdir_command(int sockfd, char *recv_buf)
+{
+    char buffer[BUFF_SIZE];
+    
+    // Step 1: Get current directory from server
+    char *get_dir_cmd = "GETDIR\r\n";
+    if (send_all(sockfd, get_dir_cmd, strlen(get_dir_cmd)) == -1)
+    {
+        fprintf(stderr, "Failed to send message.\n");
+        return;
+    }
+    
+    int len = recv_line(sockfd, recv_buf, BUFF_SIZE);
+    if (len <= 0)
+    {
+        printf("Server disconnected or error.\n");
+        return;
+    }
+    
+    printf("Thư mục làm việc hiện tại: %s\n", recv_buf);
+    
+    // Step 2: Ask user if they want to change
+    char choice;
+    while (1)
+    {
+        printf("Bạn có muốn đổi thư mục làm việc không? y/n: ");
+        scanf(" %c", &choice);
+        while (getchar() != '\n'); // Clear buffer
+        
+        if (choice == 'y' || choice == 'Y')
+        {
+            // Get new directory
+            char new_dir[512];
+            printf("Vui lòng nhập thư mục làm việc mới: ");
+            if (fgets(new_dir, sizeof(new_dir), stdin) == NULL)
+            {
+                return;
+            }
+            new_dir[strcspn(new_dir, "\n")] = 0; // Remove newline
+            
+            // Send CHDIR command
+            char chdir_cmd[600];
+            snprintf(chdir_cmd, sizeof(chdir_cmd), "CHDIR %s\r\n", new_dir);
+            
+            if (send_all(sockfd, chdir_cmd, strlen(chdir_cmd)) == -1)
+            {
+                fprintf(stderr, "Failed to send message.\n");
+                return;
+            }
+            
+            len = recv_line(sockfd, recv_buf, BUFF_SIZE);
+            if (len <= 0)
+            {
+                printf("Server disconnected or error.\n");
+                return;
+            }
+            
+            printf("Server response: %s\n", recv_buf);
+            break;
+        }
+        else if (choice == 'n' || choice == 'N')
+        {
+            printf("Không thay đổi thư mục làm việc.\n");
+            break;
+        }
+        else
+        {
+            printf("Vui lòng nhập \"y\" hoặc \"n\".\n");
+        }
+    }
 }

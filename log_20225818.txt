@@ -27,3 +27,9 @@
 [02/11/2025 17:58:54]$127.0.0.1:45890$USER user1\r\n$Login attempt - username
 [02/11/2025 17:58:57]$127.0.0.1:45890$PASS 123456\r\n$Login attempt - password
 [02/11/2025 17:59:07]$127.0.0.1:45890$UPLD Ronaldobeo.jpeg 8285 \r\n$+OK Successful upload
+[03/11/2025 16:05:03]$127.0.0.1:55752$CONNECT$+OK Welcome to file server
+[03/11/2025 16:05:06]$127.0.0.1:55752$GETDIR\r\n$Get current directory
+[03/11/2025 16:05:18]$127.0.0.1:55752$USER user1\r\n$Login attempt - username
+[03/11/2025 16:05:20]$127.0.0.1:55752$PASS 123456\r\n$Login attempt - password
+[03/11/2025 16:05:23]$127.0.0.1:55752$GETDIR\r\n$Get current directory
+[03/11/2025 16:05:48]$127.0.0.1:55752$CHDIR /mnt/d/ftp-client/TCP_Client/user1\r\n$Change directory attempt

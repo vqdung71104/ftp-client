@@ -236,3 +236,64 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, const char *
 
     log_message(client_addr_str, request_log, response_log);
 }
+
+void get_current_directory(int client_socket)
+{
+    char return_msg[1100];
+    
+    if (is_logged_in == 0)
+    {
+        strcpy(return_msg, "221: You have NOT logged in\r\n");
+    }
+    else
+    {
+        snprintf(return_msg, sizeof(return_msg), "150: Current directory: %s\r\n", current_root_dir);
+    }
+    
+    send_all(client_socket, return_msg, strlen(return_msg));
+    usleep(1000);
+}
+
+void change_directory(char *new_dir, int client_socket)
+{
+    char return_msg[512];
+    
+    if (is_logged_in == 0)
+    {
+        strcpy(return_msg, "221: You have NOT logged in\r\n");
+        send_all(client_socket, return_msg, strlen(return_msg));
+        usleep(1000);
+        return;
+    }
+    
+    // Update in-memory user data
+    strcpy(current_root_dir, new_dir);
+    for (int i = 0; i < count; i++)
+    {
+        if (strcmp(users[i].username, current_username) == 0)
+        {
+            strcpy(users[i].root_dir, new_dir);
+            break;
+        }
+    }
+    
+    // Update account.txt file
+    FILE *fp = fopen("account.txt", "w");
+    if (fp == NULL)
+    {
+        strcpy(return_msg, "240: Failed to update account file\r\n");
+        send_all(client_socket, return_msg, strlen(return_msg));
+        usleep(1000);
+        return;
+    }
+    
+    for (int i = 0; i < count; i++)
+    {
+        fprintf(fp, "%s %s %s %d\n", users[i].username, users[i].password, users[i].root_dir, users[i].status);
+    }
+    fclose(fp);
+    
+    strcpy(return_msg, "140: Directory changed successfully\r\n");
+    send_all(client_socket, return_msg, strlen(return_msg));
+    usleep(1000);
+}

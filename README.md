@@ -87,7 +87,8 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
 2. Post message
 3. Upload file
 4. Logout
-5. Exit
+5. Change working directory
+6. Exit
 ```
 
 #### Chức năng chi tiết:
@@ -121,6 +122,13 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
 - Phản hồi:
   - `130: Logout successfully` - Đăng xuất thành công
   - `221: You have NOT logged in` - Chưa đăng nhập
+
+**5. Change working directory**
+- Thay đổi thư mục làm việc
+- Hiển thị thư mục làm việc hiện tại
+- Nếu muốn thay đổi thì ấn "y", nếu không ấn "n"
+- Nhập đường dẫn thư mục làm việc mới
+- Hệ thống cập nhật lại và sửa file account.txt
 
 **5. Exit**
 - Thoát chương trình client
@@ -164,4 +172,5 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
 
 ## Tác giả
 
-Project được phát triển theo yêu cầu của khóa học Network Programming.
+Vũ Quang Dũng
+

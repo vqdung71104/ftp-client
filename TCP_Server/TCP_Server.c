@@ -204,6 +204,12 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
             {
                 handle_upload_file(conn_sock, client_addr_str, storage_dir, command_value, request_log);
             }
+            else if (strcmp(command, "CHDIR") == 0)
+            {
+                change_directory(command_value, conn_sock);
+                const char *response_log = "Change directory attempt";
+                log_message(client_addr_str, request_log, response_log);
+            }
             else
             {
                 char *return_msg = "300: Unknown command\r\n";
@@ -214,7 +220,7 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
         }
         else
         {
-            // Command "BYE" or unknow command
+            // Command "BYE" or "GETDIR" or unknown command
             strcpy(command, buffer);
             if (strcmp(command, "BYE") == 0)
             { // BYE command
@@ -233,6 +239,12 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
                 }
                 send_all(conn_sock, return_msg, strlen(return_msg));
                 const char *response_log = return_msg;
+                log_message(client_addr_str, request_log, response_log);
+            }
+            else if (strcmp(command, "GETDIR") == 0)
+            { // GETDIR command
+                get_current_directory(conn_sock);
+                const char *response_log = "Get current directory";
                 log_message(client_addr_str, request_log, response_log);
             }
             else

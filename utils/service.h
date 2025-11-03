@@ -85,4 +85,19 @@ void post_article(int client_socket, char *command_value);
  */
 void handle_upload_file(int conn_sock, const char *client_addr_str, const char *storage_dir, char *command_value, const char *request_log);
 
+/**
+ * @brief Get current working directory for logged in user
+ * 
+ * @param client_socket socket descriptor
+ */
+void get_current_directory(int client_socket);
+
+/**
+ * @brief Change working directory for logged in user
+ * 
+ * @param new_dir new directory path
+ * @param client_socket socket descriptor
+ */
+void change_directory(char *new_dir, int client_socket);
+
 #endif
