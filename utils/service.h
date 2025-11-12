@@ -79,11 +79,10 @@ void post_article(int client_socket, char *command_value);
  * 
  * @param conn_sock client socket descriptor
  * @param client_addr_str client address string
- * @param storage_dir directory to store uploaded files
  * @param command_value command value containing filename and filesize
  * @param request_log request log string
  */
-void handle_upload_file(int conn_sock, const char *client_addr_str, const char *storage_dir, char *command_value, const char *request_log);
+void handle_upload_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log);
 
 /**
  * @brief Get current working directory for logged in user
@@ -93,11 +92,18 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, const char *
 void get_current_directory(int client_socket);
 
 /**
- * @brief Change working directory for logged in user
+ * @brief Function for changing working directory
  * 
  * @param new_dir new directory path
  * @param client_socket socket descriptor
  */
 void change_directory(char *new_dir, int client_socket);
+
+/**
+ * @brief Function for listing files in current working directory
+ * 
+ * @param client_socket socket descriptor
+ */
+void list_files(int client_socket);
 
 #endif

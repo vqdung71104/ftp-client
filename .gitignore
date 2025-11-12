@@ -54,5 +54,47 @@ dkms.conf
 # debug information files
 *.dwo
 
-#build/
+# Build directory and artifacts
+build/
 build-*/
+
+# Log files
+logs/
+*.log
+
+# Cache and temporary files
+.cache/
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.backup
+*.bak
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# OS generated files
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# User uploaded files (test files)
+TCP_Client/user*/
+TCP_Server/user*/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Package files
+*.zip
+*.tar.gz
+*.rar

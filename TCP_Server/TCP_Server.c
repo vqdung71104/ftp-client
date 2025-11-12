@@ -202,7 +202,7 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
             }
             else if (strcmp(command, "UPLD") == 0)
             {
-                handle_upload_file(conn_sock, client_addr_str, storage_dir, command_value, request_log);
+                handle_upload_file(conn_sock, client_addr_str, command_value, request_log);
             }
             else if (strcmp(command, "CHDIR") == 0)
             {
@@ -245,6 +245,12 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
             { // GETDIR command
                 get_current_directory(conn_sock);
                 const char *response_log = "Get current directory";
+                log_message(client_addr_str, request_log, response_log);
+            }
+            else if (strcmp(command, "LIST") == 0)
+            { // LIST command
+                list_files(conn_sock);
+                const char *response_log = "List files";
                 log_message(client_addr_str, request_log, response_log);
             }
             else

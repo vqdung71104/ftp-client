@@ -5,11 +5,14 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <dirent.h>
 
 #include "service.h"
 #include "account.h"
 #include "utils.h"
 #include "logging.h"
+
+#define BUFF_SIZE 16384
 
 int user_validation(char *username)
 {
@@ -145,7 +148,7 @@ void post_article(int client_socket, char *command_value)
     usleep(1000);
 }
 
-void handle_upload_file(int conn_sock, const char *client_addr_str, const char *storage_dir, char *command_value, const char *request_log)
+void handle_upload_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log)
 {
     char filename[512];
     unsigned long file_size;
@@ -310,6 +313,76 @@ void change_directory(char *new_dir, int client_socket)
     fclose(fp);
     
     strcpy(return_msg, "140: Directory changed successfully\r\n");
+    send_all(client_socket, return_msg, strlen(return_msg));
+    usleep(1000);
+}
+
+void list_files(int client_socket)
+{
+    char return_msg[BUFF_SIZE];
+    
+    if (is_logged_in == 0)
+    {
+        strcpy(return_msg, "221: You have NOT logged in\r\n");
+        send_all(client_socket, return_msg, strlen(return_msg));
+        usleep(1000);
+        return;
+    }
+    
+    // Open directory
+    DIR *dir = opendir(current_root_dir);
+    if (dir == NULL)
+    {
+        snprintf(return_msg, sizeof(return_msg), "ERR: Cannot open directory %s\r\n", current_root_dir);
+        send_all(client_socket, return_msg, strlen(return_msg));
+        usleep(1000);
+        return;
+    }
+    
+    // Send success message with directory path
+    snprintf(return_msg, sizeof(return_msg), "150: Listing directory: %s\r\n", current_root_dir);
+    send_all(client_socket, return_msg, strlen(return_msg));
+    usleep(1000);
+    
+    // Read and send each file entry
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL)
+    {
+        // Skip . and ..
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        {
+            continue;
+        }
+        
+        // Get file stats
+        char fullpath[1024];
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", current_root_dir, entry->d_name);
+        
+        struct stat st;
+        if (stat(fullpath, &st) == 0)
+        {
+            if (S_ISDIR(st.st_mode))
+            {
+                snprintf(return_msg, sizeof(return_msg), "[DIR]  %s\r\n", entry->d_name);
+            }
+            else
+            {
+                snprintf(return_msg, sizeof(return_msg), "[FILE] %s (%ld bytes)\r\n", entry->d_name, st.st_size);
+            }
+        }
+        else
+        {
+            snprintf(return_msg, sizeof(return_msg), "[????] %s\r\n", entry->d_name);
+        }
+        
+        send_all(client_socket, return_msg, strlen(return_msg));
+        usleep(1000);
+    }
+    
+    closedir(dir);
+    
+    // Send end marker
+    strcpy(return_msg, "END\r\n");
     send_all(client_socket, return_msg, strlen(return_msg));
     usleep(1000);
 }

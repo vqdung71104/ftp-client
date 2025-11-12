@@ -66,6 +66,14 @@ void send_upload_command(int sockfd, char *recv_buf);
  */
 void send_chdir_command(int sockfd, char *recv_buf);
 
+/**
+ * @brief Function for listing files in working directory
+ *
+ * @param sockfd socket descriptor
+ * @param recv_buf buffer to save the result
+ */
+void send_list_command(int sockfd, char *recv_buf);
+
 int main(int argc, char *argv[])
 {
     if (argc != 3)
@@ -172,7 +180,8 @@ void simple_menu(int sockfd, char *recv_buf)
         printf("3. Upload file\n");
         printf("4. Logout\n");
         printf("5. Change working directory\n");
-        printf("6. Exit\n");
+        printf("6. List files in working directory\n");
+        printf("7. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
         // Consume the newline character left in the buffer by scanf
@@ -197,6 +206,9 @@ void simple_menu(int sockfd, char *recv_buf)
             send_chdir_command(sockfd, recv_buf);
             break;
         case 6:
+            send_list_command(sockfd, recv_buf);
+            break;
+        case 7:
             // exit_program();
             break;
         default:
@@ -207,7 +219,7 @@ void simple_menu(int sockfd, char *recv_buf)
         while (getchar() != '\n')
             ; // Wait for user to press Enter
 
-    } while (choice != 6);
+    } while (choice != 7);
 }
 
 void send_login_command(int sockfd, char *recv_buf)
@@ -421,4 +433,55 @@ void send_chdir_command(int sockfd, char *recv_buf)
             printf("Vui lòng nhập \"y\" hoặc \"n\".\n");
         }
     }
+}
+
+void send_list_command(int sockfd, char *recv_buf)
+{
+    char buffer[BUFF_SIZE];
+    
+    // Send LIST command to server
+    char *list_cmd = "LIST\r\n";
+    if (send_all(sockfd, list_cmd, strlen(list_cmd)) == -1)
+    {
+        fprintf(stderr, "Failed to send message.\n");
+        return;
+    }
+    
+    // Receive response
+    int len = recv_line(sockfd, recv_buf, BUFF_SIZE);
+    if (len <= 0)
+    {
+        printf("Server disconnected or error.\n");
+        return;
+    }
+    
+    // Check if error or success
+    if (strncmp(recv_buf, "221:", 4) == 0 || strncmp(recv_buf, "ERR", 3) == 0)
+    {
+        printf("Server response: %s\n", recv_buf);
+        return;
+    }
+    
+    // Print header
+    printf("\n=== Files in working directory ===\n");
+    printf("%s\n", recv_buf);
+    
+    // Receive file list (multiple lines)
+    while (1)
+    {
+        len = recv_line(sockfd, buffer, BUFF_SIZE);
+        if (len <= 0)
+        {
+            break;
+        }
+        
+        // Check for end marker
+        if (strcmp(buffer, "END") == 0)
+        {
+            break;
+        }
+        
+        printf("%s\n", buffer);
+    }
+    printf("==================================\n");
 }
