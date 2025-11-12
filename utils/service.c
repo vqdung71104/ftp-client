@@ -182,16 +182,22 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, char *comman
 
     *last_space = '\0';
     char *size_str = last_space + 1;
+    
+    // Trim any whitespace from size_str
+    while (*size_str == ' ' || *size_str == '\t') {
+        size_str++;
+    }
+    
     char *endptr = NULL;
     unsigned long fs = strtoul(size_str, &endptr, 10);
-    //if (endptr == size_str || *endptr != '\0')
-    //{
-    //    const char *err_msg = "ERR Invalid filesize\r\n";
-    //    send_all(conn_sock, err_msg, strlen(err_msg));
-    //    response_log = "-ERR Invalid filesize";
-    //    log_message(client_addr_str, request_log, response_log);
-    //    return;
-    //}
+    if (endptr == size_str || fs == 0)
+    {
+        const char *err_msg = "ERR Invalid filesize\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR Invalid filesize";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
 
     file_size = fs;
     strncpy(filename, command_value, sizeof(filename) - 1);

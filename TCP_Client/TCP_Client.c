@@ -311,7 +311,7 @@ void send_upload_command(int sockfd, char *recv_buf)
 
     // Craft payload
     char command[1280];
-    snprintf(command, sizeof(command), "UPLD %s %ld \r\n", filename, file_size);
+    snprintf(command, sizeof(command), "UPLD %s %ld\r\n", filename, file_size);
 
     if (send(sockfd, command, strlen(command), 0) < 0)
     {
