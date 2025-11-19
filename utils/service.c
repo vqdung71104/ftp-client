@@ -392,3 +392,75 @@ void list_files(int client_socket)
     send_all(client_socket, return_msg, strlen(return_msg));
     usleep(1000);
 }
+
+void handle_download_file(int conn_sock, const char *client_addr_str, char *filename, const char *request_log)
+{
+    char return_msg[BUFF_SIZE];
+    const char *response_log;
+    char file_buffer[16384];
+    
+    // Check if user is logged in
+    if (is_logged_in == 0)
+    {
+        const char *err_msg = "221: You have NOT logged in\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR Not logged in";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
+    
+    // Construct full file path
+    char filepath[1024];
+    snprintf(filepath, sizeof(filepath), "%s/%s", current_root_dir, filename);
+    
+    // Open file for reading
+    FILE *fp = fopen(filepath, "rb");
+    if (fp == NULL)
+    {
+        const char *err_msg = "ERR: File not found\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR File not found";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
+    
+    // Get file size
+    long file_size = get_file_size(fp);
+    
+    // Send OK response with file size
+    snprintf(return_msg, sizeof(return_msg), "+OK %ld\r\n", file_size);
+    send_all(conn_sock, return_msg, strlen(return_msg));
+    usleep(1000);
+    
+    // Send file data
+    size_t bytes_read;
+    long total_sent = 0;
+    
+    while ((bytes_read = fread(file_buffer, 1, 16384, fp)) > 0)
+    {
+        if (send_all(conn_sock, file_buffer, bytes_read) == -1)
+        {
+            fprintf(stderr, "send() error while downloading file\n");
+            response_log = "-ERR Send failed";
+            log_message(client_addr_str, request_log, response_log);
+            fclose(fp);
+            return;
+        }
+        total_sent += bytes_read;
+    }
+    
+    fclose(fp);
+    
+    if (total_sent == file_size)
+    {
+        response_log = "+OK Successful download";
+        printf("Client %s has downloaded file %s successfully.\n", client_addr_str, filename);
+    }
+    else
+    {
+        response_log = "-ERR Download failed";
+        printf("Client %s download file %s failed.\n", client_addr_str, filename);
+    }
+    
+    log_message(client_addr_str, request_log, response_log);
+}

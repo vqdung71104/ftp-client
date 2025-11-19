@@ -210,6 +210,10 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
                 const char *response_log = "Change directory attempt";
                 log_message(client_addr_str, request_log, response_log);
             }
+            else if (strcmp(command, "DNLD") == 0)
+            {
+                handle_download_file(conn_sock, client_addr_str, command_value, request_log);
+            }
             else
             {
                 char *return_msg = "300: Unknown command\r\n";

@@ -27,7 +27,6 @@ SERVER_OBJ = $(patsubst TCP_Server/%.c, $(BUILD_DIR)/%.o, $(SERVER_SRC))
 .PHONY: all clean
 
 # Quy tắc mặc định
-# Quy tắc mặc định
 all: $(TARGET_CLIENT) $(TARGET_SERVER)
 	@mkdir -p $(BUILD_DIR)/storage
 	@mkdir -p logs

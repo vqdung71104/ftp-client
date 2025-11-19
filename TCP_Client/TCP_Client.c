@@ -74,6 +74,14 @@ void send_chdir_command(int sockfd, char *recv_buf);
  */
 void send_list_command(int sockfd, char *recv_buf);
 
+/**
+ * @brief Function for downloading file from server
+ *
+ * @param sockfd socket descriptor
+ * @param recv_buf buffer to save the result
+ */
+void send_download_command(int sockfd, char *recv_buf);
+
 int main(int argc, char *argv[])
 {
     if (argc != 3)
@@ -181,7 +189,8 @@ void simple_menu(int sockfd, char *recv_buf)
         printf("4. Logout\n");
         printf("5. Change working directory\n");
         printf("6. List files in working directory\n");
-        printf("7. Exit\n");
+        printf("7. Download file\n");
+        printf("8. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
         // Consume the newline character left in the buffer by scanf
@@ -209,6 +218,9 @@ void simple_menu(int sockfd, char *recv_buf)
             send_list_command(sockfd, recv_buf);
             break;
         case 7:
+            send_download_command(sockfd, recv_buf);
+            break;
+        case 8:
             // exit_program();
             break;
         default:
@@ -219,7 +231,7 @@ void simple_menu(int sockfd, char *recv_buf)
         while (getchar() != '\n')
             ; // Wait for user to press Enter
 
-    } while (choice != 7);
+    } while (choice != 8);
 }
 
 void send_login_command(int sockfd, char *recv_buf)
@@ -484,4 +496,111 @@ void send_list_command(int sockfd, char *recv_buf)
         printf("%s\n", buffer);
     }
     printf("==================================\n");
+}
+
+void send_download_command(int sockfd, char *recv_buf)
+{
+    char filename[512];
+    char buffer[BUFF_SIZE + 1];
+    char command[600];
+
+    printf("Enter filename to download: ");
+    if (fgets(filename, sizeof(filename), stdin) == NULL)
+    {
+        return;
+    }
+
+    // Trim the last '\n'
+    filename[strcspn(filename, "\r\n")] = 0;
+
+    if (strlen(filename) == 0)
+    {
+        printf("No filename entered.\n");
+        return;
+    }
+
+    // Send DNLD command
+    snprintf(command, sizeof(command), "DNLD %s\r\n", filename);
+    if (send_all(sockfd, command, strlen(command)) == -1)
+    {
+        fprintf(stderr, "Failed to send message.\n");
+        return;
+    }
+
+    // Wait for server response
+    int received_bytes = recv_line(sockfd, recv_buf, BUFF_SIZE);
+    if (received_bytes <= 0)
+    {
+        printf("Server has closed connection.\n");
+        return;
+    }
+
+    // Check for error responses
+    if (strncmp(recv_buf, "221:", 4) == 0 || strncmp(recv_buf, "ERR", 3) == 0)
+    {
+        printf("Server response: %s\n", recv_buf);
+        return;
+    }
+
+    // Parse response: "+OK <filesize>"
+    if (strncmp(recv_buf, "+OK", 3) != 0)
+    {
+        printf("Unexpected server response: %s\n", recv_buf);
+        return;
+    }
+
+    // Extract file size
+    char *size_str = strchr(recv_buf, ' ');
+    if (size_str == NULL)
+    {
+        printf("Invalid response format: %s\n", recv_buf);
+        return;
+    }
+    size_str++; // Skip the space
+
+    long file_size = atol(size_str);
+    if (file_size <= 0)
+    {
+        printf("Invalid file size: %ld\n", file_size);
+        return;
+    }
+
+    printf("Downloading file %s (%ld bytes)...\n", filename, file_size);
+
+    // Open file for writing
+    FILE *fp = fopen(filename, "wb");
+    if (fp == NULL)
+    {
+        perror("Error: Cannot create file");
+        return;
+    }
+
+    // Receive file data
+    long total_received = 0;
+    while (total_received < file_size)
+    {
+        int to_receive = (file_size - total_received > BUFF_SIZE) ? BUFF_SIZE : (file_size - total_received);
+        received_bytes = recv(sockfd, buffer, to_receive, 0);
+        if (received_bytes <= 0)
+        {
+            printf("Connection error while downloading file.\n");
+            fclose(fp);
+            remove(filename);
+            return;
+        }
+        fwrite(buffer, 1, received_bytes, fp);
+        total_received += received_bytes;
+    }
+
+    fclose(fp);
+
+    if (total_received == file_size)
+    {
+        printf("Download successful! File saved as: %s\n", filename);
+    }
+    else
+    {
+        printf("Error: Expected %ld bytes but received %ld bytes.\n", file_size, total_received);
+        remove(filename);
+    }
 }
