@@ -184,13 +184,12 @@ void simple_menu(int sockfd, char *recv_buf)
         //system("clear"); // For Linux/macOS
         printf("\n--- Simple Menu ---\n");
         printf("1. Login\n");
-        printf("2. Post message\n");
-        printf("3. Upload file\n");
-        printf("4. Logout\n");
+        printf("2. Upload file\n");
+        printf("3. Download file\n");
+        printf("4. List files in working directory\n");
         printf("5. Change working directory\n");
-        printf("6. List files in working directory\n");
-        printf("7. Download file\n");
-        printf("8. Exit\n");
+        printf("6. Logout\n");
+        printf("7. Exit\n");
         printf("Enter your choice: ");
         scanf("%d", &choice);
         // Consume the newline character left in the buffer by scanf
@@ -203,24 +202,21 @@ void simple_menu(int sockfd, char *recv_buf)
             send_login_command(sockfd, recv_buf);
             break;
         case 2:
-            send_article_command(sockfd, recv_buf);
-            break;
-        case 3:
             send_upload_command(sockfd, recv_buf);
             break;
+        case 3:
+            send_download_command(sockfd, recv_buf);
+            break;
         case 4:
-            send_bye_command(sockfd, recv_buf);
+            send_list_command(sockfd, recv_buf);
             break;
         case 5:
             send_chdir_command(sockfd, recv_buf);
             break;
         case 6:
-            send_list_command(sockfd, recv_buf);
+            send_bye_command(sockfd, recv_buf);
             break;
         case 7:
-            send_download_command(sockfd, recv_buf);
-            break;
-        case 8:
             // exit_program();
             break;
         default:

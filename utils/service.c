@@ -129,25 +129,6 @@ void verify_password(char *password, int client_socket)
     usleep(1000);
 }
 
-void post_article(int client_socket, char *command_value)
-{
-    char return_msg[512];
-    // post article cmd
-    if (is_logged_in == 0)
-    { // have not logged in yet
-        strcpy(return_msg, "221: You have NOT logged in\r\n");
-        send_all(client_socket, return_msg, strlen(return_msg));
-    }
-    else // logged in
-    {
-        strcpy(return_msg, "120: Post successfully. With content: ");
-        strcat(return_msg, command_value);
-        strcat(return_msg, "\r\n");
-        send_all(client_socket, return_msg, strlen(return_msg));
-    }
-    usleep(1000);
-}
-
 void handle_upload_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log)
 {
     char filename[512];
