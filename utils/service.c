@@ -184,7 +184,7 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, char *comman
     strncpy(filename, command_value, sizeof(filename) - 1);
     filename[sizeof(filename) - 1] = '\0';
 
-    // Use current user's root directory instead of storage_dir
+    // Use current user's root directory
     char filepath[1024];
     snprintf(filepath, sizeof(filepath), "%s/%s", current_root_dir, filename);
     

@@ -66,15 +66,6 @@ void verify_password(char *password, int client_socket);
 int user_validation(char *username);
 
 /**
- * @brief Function for handling posting article 
- * 
- * @param client_socket socket descriptor for client socket
- * 
- * @param command_value msg for posting article
- */
-void post_article(int client_socket, char *command_value);
-
-/**
  * @brief Function for handling file upload
  * 
  * @param conn_sock client socket descriptor

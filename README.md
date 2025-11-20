@@ -87,13 +87,12 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
 ```
 --- Simple Menu ---
 1. Login
-2. Post message
-3. Upload file
-4. Logout
+2. Upload file
+3. Download file
+4. List files in working directory
 5. Change working directory
-6. List files in working directory
-7. Download file
-8. Exit
+6. Logout
+7. Exit
 ```
 
 #### Chức năng chi tiết:
@@ -107,14 +106,9 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
   - `211: Account IS banned` - Tài khoản bị khóa
   - `213: You have already logged in` - Đã đăng nhập rồi
 
-**2. Post message**
-- Nhập nội dung tin nhắn để đăng
-- Yêu cầu đã đăng nhập
-- Phản hồi:
-  - `120: Post successfully. With content: <message>` - Đăng bài thành công
-  - `221: You have NOT logged in` - Chưa đăng nhập
+p
 
-**3. Upload file**
+**2. Upload file**
 - Nhập đường dẫn file cần upload
 - **Yêu cầu đã đăng nhập**
 - File sẽ được lưu vào **thư mục làm việc (root_dir) của user** đã đăng nhập
@@ -125,10 +119,26 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
   - `ERR Upload failed` - Upload thất bại
   - `221: You have NOT logged in` - Chưa đăng nhập
 
-**4. Logout**
-- Đăng xuất khỏi hệ thống
+**3. Download file**
+- Tải file từ thư mục làm việc của user trên server về thư mục TCP_Client
+- **Yêu cầu đã đăng nhập**
+- Nhập tên file cần tải (file phải tồn tại trong root_dir của user trên server)
+- File sẽ được lưu vào thư mục hiện tại của client
 - Phản hồi:
-  - `130: Logout successfully` - Đăng xuất thành công
+  - `+OK <filesize>` - Server gửi file với kích thước
+  - `ERR: File not found` - File không tồn tại
+  - `221: You have NOT logged in` - Chưa đăng nhập
+
+  **4. List files in working directory**
+- Liệt kê tất cả file và thư mục trong thư mục làm việc
+- **Yêu cầu đã đăng nhập**
+- Hiển thị:
+  - `[DIR]` cho thư mục
+  - `[FILE]` cho file kèm theo kích thước
+- Phản hồi:
+  - `150: Listing directory: <path>` - Bắt đầu liệt kê
+  - `END` - Kết thúc danh sách
+  - `ERR: Cannot open directory` - Lỗi mở thư mục
   - `221: You have NOT logged in` - Chưa đăng nhập
 
 **5. Change working directory**
@@ -143,29 +153,13 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
   - `240: Failed to update account file` - Lỗi cập nhật file
   - `221: You have NOT logged in` - Chưa đăng nhập
 
-**6. List files in working directory**
-- Liệt kê tất cả file và thư mục trong thư mục làm việc
-- **Yêu cầu đã đăng nhập**
-- Hiển thị:
-  - `[DIR]` cho thư mục
-  - `[FILE]` cho file kèm theo kích thước
+**6. Logout**
+- Đăng xuất khỏi hệ thống
 - Phản hồi:
-  - `150: Listing directory: <path>` - Bắt đầu liệt kê
-  - `END` - Kết thúc danh sách
-  - `ERR: Cannot open directory` - Lỗi mở thư mục
+  - `130: Logout successfully` - Đăng xuất thành công
   - `221: You have NOT logged in` - Chưa đăng nhập
 
-**7. Download file**
-- Tải file từ thư mục làm việc của user trên server về thư mục TCP_Client
-- **Yêu cầu đã đăng nhập**
-- Nhập tên file cần tải (file phải tồn tại trong root_dir của user trên server)
-- File sẽ được lưu vào thư mục hiện tại của client
-- Phản hồi:
-  - `+OK <filesize>` - Server gửi file với kích thước
-  - `ERR: File not found` - File không tồn tại
-  - `221: You have NOT logged in` - Chưa đăng nhập
-
-**8. Exit**
+**7. Exit**
 - Thoát chương trình client
 
 ## Protocol
@@ -379,7 +373,6 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
    - **Xử lý các commands**:
      - `USER <username>`: Gọi `login()` từ `utils/service.c`
      - `PASS <password>`: Gọi `verify_password()` từ `utils/service.c`
-     - `POST <message>`: Gọi `post_article()` từ `utils/service.c`
      - `UPLD <filename> <filesize>`: Gọi `handle_upload_file()` từ `utils/service.c`
      - `DNLD <filename>`: Gọi `handle_download_file()` từ `utils/service.c`
      - `CHDIR <new_dir>`: Gọi `change_directory()` từ `utils/service.c`
@@ -422,12 +415,7 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
    - Nếu đúng → trả về 110, set `is_logged_in = 1`, lưu user info vào `current_username` và `current_root_dir`
    - Nếu sai → trả về 214, xóa `pending_username`
 
-5. **post_article(client_socket, message)**:
-   - Kiểm tra `is_logged_in`
-   - Nếu chưa login → trả về 221
-   - Nếu đã login → trả về 120 kèm nội dung message
-
-6. **handle_upload_file(conn_sock, client_addr_str, command_value, request_log)**:
+5. **handle_upload_file(conn_sock, client_addr_str, command_value, request_log)**:
    - Kiểm tra `is_logged_in` → nếu chưa: trả về 221
    - Parse `command_value` thành `filename` và `filesize`
    - Tạo đường dẫn: `<current_root_dir>/<filename>`
@@ -438,7 +426,7 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
    - Trả về `OK Successful upload` hoặc `ERR Upload failed`
    - Log kết quả
 
-7. **handle_download_file(conn_sock, client_addr_str, filename, request_log)**:
+6. **handle_download_file(conn_sock, client_addr_str, filename, request_log)**:
    - Kiểm tra `is_logged_in` → nếu chưa: trả về 221
    - Tạo đường dẫn: `<current_root_dir>/<filename>`
    - Mở file để đọc (`fopen(..., "rb")`)
@@ -448,17 +436,17 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
    - Đọc file theo chunk (16KB) và gửi qua socket
    - Log kết quả
 
-8. **get_current_directory(client_socket)**:
+7. **get_current_directory(client_socket)**:
    - Kiểm tra `is_logged_in`
    - Trả về `150: Current directory: <current_root_dir>`
 
-9. **change_directory(new_dir, client_socket)**:
+8. **change_directory(new_dir, client_socket)**:
    - Kiểm tra `is_logged_in`
    - Cập nhật `current_root_dir` và `users[i].root_dir`
    - Ghi lại toàn bộ mảng `users[]` vào file `account.txt`
    - Trả về 140 (success) hoặc 240 (failed)
 
-10. **list_files(client_socket)**:
+9. **list_files(client_socket)**:
     - Kiểm tra `is_logged_in`
     - Mở thư mục `current_root_dir` bằng `opendir()`
     - Duyệt từng entry bằng `readdir()`

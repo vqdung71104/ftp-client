@@ -194,12 +194,6 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
                 const char *response_log = "Login attempt - password";
                 log_message(client_addr_str, request_log, response_log);
             }
-            else if (strcmp(command, "POST") == 0)
-            {
-                post_article(conn_sock, command_value);
-                const char *response_log = "Post attempt";
-                log_message(client_addr_str, request_log, response_log);
-            }
             else if (strcmp(command, "UPLD") == 0)
             {
                 handle_upload_file(conn_sock, client_addr_str, command_value, request_log);

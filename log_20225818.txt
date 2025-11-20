@@ -70,3 +70,31 @@
 [19/11/2025 23:41:59]$127.0.0.1:51274$DNLD /mnt/d/ftp-client/TCP_Client/user1/Ronaldobeo.jpeg\r\n$-ERR File not found
 [19/11/2025 23:42:10]$127.0.0.1:51274$DNLD Ronaldobeo.jpeg\r\n$+OK Successful download
 [19/11/2025 23:42:41]$127.0.0.1:51274$DNLD Ronaldobeo.jpeg\r\n$+OK Successful download
+[20/11/2025 07:49:47]$127.0.0.1:58628$CONNECT$+OK Welcome to file server
+[20/11/2025 07:53:11]$127.0.0.1:44868$CONNECT$+OK Welcome to file server
+[20/11/2025 07:53:17]$127.0.0.1:44868$USER user1\r\n$Login attempt - username
+[20/11/2025 07:53:20]$127.0.0.1:44868$PASS 123456\r\n$Login attempt - password
+[20/11/2025 07:53:54]$127.0.0.1:44868$UPLD Ronaldobeo.jpeg 8285\r\n$-ERR Upload failed
+[20/11/2025 07:53:55]$127.0.0.1:45376$CONNECT$+OK Welcome to file server
+[20/11/2025 07:54:00]$127.0.0.1:45376$USER user1\r\n$Login attempt - username
+[20/11/2025 07:54:05]$127.0.0.1:45376$USER user1\r\n$Login attempt - username
+[20/11/2025 07:54:21]$127.0.0.1:45376$DNLD Ronaldobeo.jpeg\r\n$-ERR File not found
+[20/11/2025 07:54:31]$127.0.0.1:45376$DNLD Ronaldogay.jpeg\r\n$+OK Successful download
+[20/11/2025 07:54:39]$127.0.0.1:45376$LIST\r\n$List files
+[20/11/2025 07:55:04]$127.0.0.1:45376$USER user1\r\n$Login attempt - username
+[20/11/2025 07:55:09]$127.0.0.1:45376$BYE\r\n$130: Logout successfully
+
+[20/11/2025 07:55:23]$127.0.0.1:45376$USER user2\r\n$Login attempt - username
+[20/11/2025 07:55:41]$127.0.0.1:45376$LIST\r\n$List files
+[20/11/2025 07:55:52]$127.0.0.1:45376$USER testuser\r\n$Login attempt - username
+[20/11/2025 07:55:55]$127.0.0.1:45376$PASS 123456\r\n$Login attempt - password
+[20/11/2025 07:55:58]$127.0.0.1:45376$LIST\r\n$List files
+[20/11/2025 07:56:10]$127.0.0.1:45376$BYE\r\n$130: Logout successfully
+
+[20/11/2025 07:56:13]$127.0.0.1:45376$USER user1\r\n$Login attempt - username
+[20/11/2025 07:56:15]$127.0.0.1:45376$PASS 123456\r\n$Login attempt - password
+[20/11/2025 07:56:17]$127.0.0.1:45376$LIST\r\n$List files
+[20/11/2025 07:57:25]$127.0.0.1:45376$GETDIR\r\n$Get current directory
+[20/11/2025 07:57:40]$127.0.0.1:45376$CHDIR /mnt/d/ftp-client/TCP_Client/user1\r\n$Change directory attempt
+[20/11/2025 07:57:44]$127.0.0.1:45376$LIST\r\n$List files
+[20/11/2025 08:00:37]$127.0.0.1:45376$UPLD Ronaldobeo.jpg 9654\r\n$-ERR Upload failed
