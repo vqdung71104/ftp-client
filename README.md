@@ -109,24 +109,24 @@ Sau khi kết nối thành công, client sẽ hiển thị menu:
 p
 
 **2. Upload file**
-- Nhập đường dẫn file cần upload
+- Nhập tên file cần tải từ server về
 - **Yêu cầu đã đăng nhập**
-- File sẽ được lưu vào **thư mục làm việc (root_dir) của user** đã đăng nhập
-- Ví dụ: Nếu đăng nhập là user1 với root_dir `/mnt/d/ftp-client/TCP_Client`, file sẽ được upload vào `/mnt/d/ftp-client/TCP_Client/`
+- File sẽ được tải từ **thư mục làm việc (root_dir) của user trên server** về thư mục hiện tại của client
+- Ví dụ: Nếu đăng nhập là user1 với root_dir `/mnt/d/ftp-client/TCP_Client`, file sẽ được tải từ `/mnt/d/ftp-client/TCP_Client/<filename>` về thư mục hiện tại
+- Phản hồi:
+  - `+OK <filesize>` - Server gửi file với kích thước
+  - `ERR: File not found` - File không tồn tại trên server
+  - `221: You have NOT logged in` - Chưa đăng nhập
+
+**3. Download file**
+- Nhập đường dẫn file cần upload từ client lên server
+- **Yêu cầu đã đăng nhập**
+- File sẽ được gửi lên và lưu vào **thư mục làm việc (root_dir) của user trên server**
+- Ví dụ: Nếu đăng nhập là user1 với root_dir `/mnt/d/ftp-client/TCP_Client`, file sẽ được upload vào `/mnt/d/ftp-client/TCP_Client/<filename>`
 - Phản hồi:
   - `+OK Please send file` - Server sẵn sàng nhận file
   - `OK Successful upload` - Upload thành công
   - `ERR Upload failed` - Upload thất bại
-  - `221: You have NOT logged in` - Chưa đăng nhập
-
-**3. Download file**
-- Tải file từ thư mục làm việc của user trên server về thư mục TCP_Client
-- **Yêu cầu đã đăng nhập**
-- Nhập tên file cần tải (file phải tồn tại trong root_dir của user trên server)
-- File sẽ được lưu vào thư mục hiện tại của client
-- Phản hồi:
-  - `+OK <filesize>` - Server gửi file với kích thước
-  - `ERR: File not found` - File không tồn tại
   - `221: You have NOT logged in` - Chưa đăng nhập
 
   **4. List files in working directory**
@@ -171,8 +171,8 @@ Tất cả các lệnh gửi lên server đều kết thúc bằng `\r\n`
 1. **USER command**: `USER <username>\r\n`
 2. **PASS command**: `PASS <password>\r\n`
 3. **POST command**: `POST <message>\r\n`
-4. **UPLD command**: `UPLD <filename> <filesize>\r\n`
-5. **DNLD command**: `DNLD <filename>\r\n`
+4. **UPLD command**: `UPLD <filename>\r\n` - Tải file từ server về client
+5. **DNLD command**: `DNLD <filename> <filesize>\r\n` - Gửi file từ client lên server
 6. **CHDIR command**: `CHDIR <new_directory>\r\n`
 7. **GETDIR command**: `GETDIR\r\n`
 8. **LIST command**: `LIST\r\n`
@@ -198,9 +198,9 @@ Tất cả các lệnh gửi lên server đều kết thúc bằng `\r\n`
 - `3xx`: Lỗi command không hợp lệ
   - `300`: Unknown command
 - `+OK`: Thành công (dùng cho file transfer)
-  - `+OK Please send file` - Upload file
-  - `+OK <filesize>` - Download file (theo sau là dữ liệu file)
-  - `OK Successful upload` - Hoàn tất upload
+  - `+OK <filesize>` - Server gửi file (UPLD command - tải từ server về)
+  - `+OK Please send file` - Server sẵn sàng nhận file (DNLD command - gửi lên server)
+  - `OK Successful upload` - Hoàn tất upload file lên server
 - `ERR`: Lỗi (dùng cho file transfer)
   - `ERR Invalid command`
   - `ERR Invalid filesize`
@@ -226,9 +226,9 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
 2. File `account.txt` phải tồn tại trước khi chạy server với format: `username password root_dir status`
 3. Thư mục storage sẽ được tự động tạo nếu chưa tồn tại
 4. Client sử dụng `recv_line()` để đọc response từ server (kết thúc bằng `\r\n`)
-5. **File upload và download đều yêu cầu đã đăng nhập**
-6. File được upload sẽ lưu vào `root_dir` của user đã đăng nhập
-7. File download sẽ lấy từ `root_dir` của user đã đăng nhập
+5. **UPLD và DNLD đều yêu cầu đã đăng nhập**
+6. **UPLD (option 2)**: Tải file từ `root_dir` của user trên server về thư mục hiện tại của client
+7. **DNLD (option 3)**: Gửi file từ client lên `root_dir` của user trên server
 8. Mỗi user có `root_dir` riêng, được định nghĩa trong `account.txt`
 9. Chức năng CHDIR cho phép thay đổi `root_dir` và cập nhật vào `account.txt`
 
@@ -415,25 +415,27 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
    - Nếu đúng → trả về 110, set `is_logged_in = 1`, lưu user info vào `current_username` và `current_root_dir`
    - Nếu sai → trả về 214, xóa `pending_username`
 
-5. **handle_upload_file(conn_sock, client_addr_str, command_value, request_log)**:
+5. **handle_upload_file(conn_sock, client_addr_str, command_value, request_log)** - Xử lý UPLD (tải từ server về client):
    - Kiểm tra `is_logged_in` → nếu chưa: trả về 221
-   - Parse `command_value` thành `filename` và `filesize`
-   - Tạo đường dẫn: `<current_root_dir>/<filename>`
-   - Mở file để ghi (`fopen(..., "wb")`)
-   - Gửi `+OK Please send file`
-   - Nhận dữ liệu file theo chunk (16KB) cho đến khi đủ `filesize` bytes
-   - Ghi vào file
-   - Trả về `OK Successful upload` hoặc `ERR Upload failed`
-   - Log kết quả
-
-6. **handle_download_file(conn_sock, client_addr_str, filename, request_log)**:
-   - Kiểm tra `is_logged_in` → nếu chưa: trả về 221
+   - `command_value` là tên file cần gửi
    - Tạo đường dẫn: `<current_root_dir>/<filename>`
    - Mở file để đọc (`fopen(..., "rb")`)
    - Nếu không tồn tại → trả về `ERR: File not found`
    - Lấy kích thước file bằng `get_file_size()`
    - Gửi `+OK <filesize>`
    - Đọc file theo chunk (16KB) và gửi qua socket
+   - Log kết quả
+
+6. **handle_download_file(conn_sock, client_addr_str, command_value, request_log)** - Xử lý DNLD (nhận từ client lên server):
+   - Kiểm tra `is_logged_in` → nếu chưa: trả về 221
+   - Parse `command_value` thành `filename` và `filesize`
+   - Tạo đường dẫn: `<current_root_dir>/<filename>`
+   - Tạo thư mục nếu chưa tồn tại
+   - Mở file để ghi (`fopen(..., "wb")`)
+   - Gửi `+OK Please send file`
+   - Nhận dữ liệu file theo chunk (16KB) cho đến khi đủ `filesize` bytes
+   - Ghi vào file
+   - Trả về `OK Successful upload` hoặc `ERR Upload failed`
    - Log kết quả
 
 7. **get_current_directory(client_socket)**:
@@ -457,11 +459,26 @@ Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <r
 
 ### Flow hoạt động tổng thể
 
-**Upload file (Client → Server)**:
+**UPLD - Tải file từ Server về Client (Server → Client)**:
 ```
 Client                          Server
   |                               |
-  |--- UPLD file.txt 1024 ------->|
+  |--- UPLD file.txt ------------->|
+  |                               | (check login, open file from root_dir)
+  |<---- +OK 1024 ----------------|
+  |                               |
+  |<--- [file data chunk 1] ------|
+  |<--- [file data chunk 2] ------|
+  |<--- [file data chunk N] ------|
+  |                               |
+  | (save to current directory)   |
+```
+
+**DNLD - Gửi file từ Client lên Server (Client → Server)**:
+```
+Client                          Server
+  |                               |
+  |--- DNLD file.txt 1024 ------->|
   |                               | (check login, parse command)
   |<---- +OK Please send file ----|
   |                               |
@@ -470,21 +487,6 @@ Client                          Server
   |--- [file data chunk N] ------>|
   |                               | (save to current_root_dir/file.txt)
   |<---- OK Successful upload ----|
-```
-
-**Download file (Server → Client)**:
-```
-Client                          Server
-  |                               |
-  |--- DNLD file.txt ------------->|
-  |                               | (check login, open file)
-  |<---- +OK 1024 ----------------|
-  |                               |
-  |<--- [file data chunk 1] ------|
-  |<--- [file data chunk 2] ------|
-  |<--- [file data chunk N] ------|
-  |                               |
-  | (save to current directory)   |
 ```
 
 **Session management**:

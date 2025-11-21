@@ -131,11 +131,10 @@ void verify_password(char *password, int client_socket)
 
 void handle_upload_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log)
 {
-    char filename[512];
-    unsigned long file_size;
+    char return_msg[BUFF_SIZE];
     const char *response_log;
     char file_buffer[16384];
-
+    
     // Check if user is logged in
     if (is_logged_in == 0)
     {
@@ -145,101 +144,65 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, char *comman
         log_message(client_addr_str, request_log, response_log);
         return;
     }
-
-    /*
-     * Expected format from command_value: <filename> <filesize>
-     * We find the last space to separate filename and filesize
-     * so the filename may contain spaces.
-     */
-    char *last_space = strrchr(command_value, ' ');
-    if (last_space == NULL)
-    {
-        const char *err_msg = "ERR Invalid command\r\n";
-        send_all(conn_sock, err_msg, strlen(err_msg));
-        response_log = "-ERR Invalid command";
-        log_message(client_addr_str, request_log, response_log);
-        return;
-    }
-
-    *last_space = '\0';
-    char *size_str = last_space + 1;
     
-    // Trim any whitespace from size_str
-    while (*size_str == ' ' || *size_str == '\t') {
-        size_str++;
-    }
-    
-    char *endptr = NULL;
-    unsigned long fs = strtoul(size_str, &endptr, 10);
-    if (endptr == size_str || fs == 0)
-    {
-        const char *err_msg = "ERR Invalid filesize\r\n";
-        send_all(conn_sock, err_msg, strlen(err_msg));
-        response_log = "-ERR Invalid filesize";
-        log_message(client_addr_str, request_log, response_log);
-        return;
-    }
-
-    file_size = fs;
+    // command_value is the filename
+    char filename[512];
     strncpy(filename, command_value, sizeof(filename) - 1);
     filename[sizeof(filename) - 1] = '\0';
-
-    // Use current user's root directory
+    
+    // Construct full file path
     char filepath[1024];
     snprintf(filepath, sizeof(filepath), "%s/%s", current_root_dir, filename);
     
-    // Create user directory if not exists
-    mkdir(current_root_dir, 0755);
-
-    FILE *fp = fopen(filepath, "wb");
-
+    // Open file for reading
+    FILE *fp = fopen(filepath, "rb");
     if (fp == NULL)
     {
-        perror("fopen() error");
-        const char *err_msg = "ERR Cannot create file\r\n";
+        const char *err_msg = "ERR: File not found\r\n";
         send_all(conn_sock, err_msg, strlen(err_msg));
-        response_log = "-ERR Cannot create file";
+        response_log = "-ERR File not found";
         log_message(client_addr_str, request_log, response_log);
         return;
     }
-
-    const char *ok_msg = "+OK Please send file\r\n";
-    send_all(conn_sock, ok_msg, strlen(ok_msg));
-
-    /* Step 4: receive file in chunks until we get file_size bytes */
-    unsigned long total_received = 0;
-    int bytes_in_chunk;
-
-    while (total_received < file_size)
+    
+    // Get file size
+    long file_size = get_file_size(fp);
+    
+    // Send OK response with file size
+    snprintf(return_msg, sizeof(return_msg), "+OK %ld\r\n", file_size);
+    send_all(conn_sock, return_msg, strlen(return_msg));
+    usleep(1000);
+    
+    // Send file data
+    size_t bytes_read;
+    long total_sent = 0;
+    
+    while ((bytes_read = fread(file_buffer, 1, 16384, fp)) > 0)
     {
-        bytes_in_chunk = recv(conn_sock, file_buffer, 16384, 0);
-        if (bytes_in_chunk <= 0)
+        if (send_all(conn_sock, file_buffer, bytes_read) == -1)
         {
-            printf("Client %s disconnected while transfering file.\n", client_addr_str);
-            break;
+            fprintf(stderr, "send() error while sending file\n");
+            response_log = "-ERR Send failed";
+            log_message(client_addr_str, request_log, response_log);
+            fclose(fp);
+            return;
         }
-        fwrite(file_buffer, 1, bytes_in_chunk, fp);
-        total_received += bytes_in_chunk;
+        total_sent += bytes_read;
     }
+    
     fclose(fp);
-
-    /* Step 5: send the final result */
-    if (total_received == file_size)
+    
+    if (total_sent == file_size)
     {
-        const char *success_msg = "OK Successful upload\r\n";
-        send_all(conn_sock, success_msg, strlen(success_msg));
-        response_log = "+OK Successful upload";
-        printf("Client %s has uploaded file %s successfully.\n", client_addr_str, filename);
+        response_log = "+OK File sent successfully";
+        printf("Client %s has uploaded file %s to server successfully.\n", client_addr_str, filename);
     }
     else
     {
-        const char *fail_msg = "ERR Upload failed\r\n";
-        send_all(conn_sock, fail_msg, strlen(fail_msg));
-        response_log = "-ERR Upload failed";
-        remove(filepath); /* remove incomplete file */
-        printf("Client %s upload file %s failed.\n", client_addr_str, filename);
+        response_log = "-ERR File transfer incomplete";
+        printf("Client %s upload file %s to server incomplete.\n", client_addr_str, filename);
     }
-
+    
     log_message(client_addr_str, request_log, response_log);
 }
 
@@ -374,12 +337,13 @@ void list_files(int client_socket)
     usleep(1000);
 }
 
-void handle_download_file(int conn_sock, const char *client_addr_str, char *filename, const char *request_log)
+void handle_download_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log)
 {
-    char return_msg[BUFF_SIZE];
+    char filename[512];
+    unsigned long file_size;
     const char *response_log;
     char file_buffer[16384];
-    
+
     // Check if user is logged in
     if (is_logged_in == 0)
     {
@@ -389,59 +353,100 @@ void handle_download_file(int conn_sock, const char *client_addr_str, char *file
         log_message(client_addr_str, request_log, response_log);
         return;
     }
-    
-    // Construct full file path
-    char filepath[1024];
-    snprintf(filepath, sizeof(filepath), "%s/%s", current_root_dir, filename);
-    
-    // Open file for reading
-    FILE *fp = fopen(filepath, "rb");
-    if (fp == NULL)
+
+    /*
+     * Expected format from command_value: <filename> <filesize>
+     * We find the last space to separate filename and filesize
+     * so the filename may contain spaces.
+     */
+    char *last_space = strrchr(command_value, ' ');
+    if (last_space == NULL)
     {
-        const char *err_msg = "ERR: File not found\r\n";
+        const char *err_msg = "ERR Invalid command\r\n";
         send_all(conn_sock, err_msg, strlen(err_msg));
-        response_log = "-ERR File not found";
+        response_log = "-ERR Invalid command";
         log_message(client_addr_str, request_log, response_log);
         return;
     }
+
+    *last_space = '\0';
+    char *size_str = last_space + 1;
     
-    // Get file size
-    long file_size = get_file_size(fp);
-    
-    // Send OK response with file size
-    snprintf(return_msg, sizeof(return_msg), "+OK %ld\r\n", file_size);
-    send_all(conn_sock, return_msg, strlen(return_msg));
-    usleep(1000);
-    
-    // Send file data
-    size_t bytes_read;
-    long total_sent = 0;
-    
-    while ((bytes_read = fread(file_buffer, 1, 16384, fp)) > 0)
-    {
-        if (send_all(conn_sock, file_buffer, bytes_read) == -1)
-        {
-            fprintf(stderr, "send() error while downloading file\n");
-            response_log = "-ERR Send failed";
-            log_message(client_addr_str, request_log, response_log);
-            fclose(fp);
-            return;
-        }
-        total_sent += bytes_read;
+    // Trim any whitespace from size_str
+    while (*size_str == ' ' || *size_str == '\t') {
+        size_str++;
     }
     
-    fclose(fp);
-    
-    if (total_sent == file_size)
+    char *endptr = NULL;
+    unsigned long fs = strtoul(size_str, &endptr, 10);
+    if (endptr == size_str || fs == 0)
     {
+        const char *err_msg = "ERR Invalid filesize\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR Invalid filesize";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
+
+    file_size = fs;
+    strncpy(filename, command_value, sizeof(filename) - 1);
+    filename[sizeof(filename) - 1] = '\0';
+
+    // Use current user's root directory
+    char filepath[1024];
+    snprintf(filepath, sizeof(filepath), "%s/%s", current_root_dir, filename);
+    
+    // Create user directory if not exists
+    mkdir(current_root_dir, 0755);
+
+    FILE *fp = fopen(filepath, "wb");
+
+    if (fp == NULL)
+    {
+        perror("fopen() error");
+        const char *err_msg = "ERR Cannot create file\r\n";
+        send_all(conn_sock, err_msg, strlen(err_msg));
+        response_log = "-ERR Cannot create file";
+        log_message(client_addr_str, request_log, response_log);
+        return;
+    }
+
+    const char *ok_msg = "+OK Please send file\r\n";
+    send_all(conn_sock, ok_msg, strlen(ok_msg));
+
+    /* Step 4: receive file in chunks until we get file_size bytes */
+    unsigned long total_received = 0;
+    int bytes_in_chunk;
+
+    while (total_received < file_size)
+    {
+        bytes_in_chunk = recv(conn_sock, file_buffer, 16384, 0);
+        if (bytes_in_chunk <= 0)
+        {
+            printf("Client %s disconnected while transfering file.\n", client_addr_str);
+            break;
+        }
+        fwrite(file_buffer, 1, bytes_in_chunk, fp);
+        total_received += bytes_in_chunk;
+    }
+    fclose(fp);
+
+    /* Step 5: send the final result */
+    if (total_received == file_size)
+    {
+        const char *success_msg = "OK Successful download\r\n";
+        send_all(conn_sock, success_msg, strlen(success_msg));
         response_log = "+OK Successful download";
-        printf("Client %s has downloaded file %s successfully.\n", client_addr_str, filename);
+        printf("Client %s has downloaded file %s from server successfully.\n", client_addr_str, filename);
     }
     else
     {
+        const char *fail_msg = "ERR Download failed\r\n";
+        send_all(conn_sock, fail_msg, strlen(fail_msg));
         response_log = "-ERR Download failed";
-        printf("Client %s download file %s failed.\n", client_addr_str, filename);
+        remove(filepath); /* remove incomplete file */
+        printf("Client %s download file %s from server failed.\n", client_addr_str, filename);
     }
-    
+
     log_message(client_addr_str, request_log, response_log);
 }

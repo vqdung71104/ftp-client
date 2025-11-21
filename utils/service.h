@@ -66,11 +66,11 @@ void verify_password(char *password, int client_socket);
 int user_validation(char *username);
 
 /**
- * @brief Function for handling file upload
+ * @brief Function for handling file download from server to client (UPLD command)
  * 
  * @param conn_sock client socket descriptor
  * @param client_addr_str client address string
- * @param command_value command value containing filename and filesize
+ * @param command_value filename to download from server
  * @param request_log request log string
  */
 void handle_upload_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log);
@@ -98,13 +98,13 @@ void change_directory(char *new_dir, int client_socket);
 void list_files(int client_socket);
 
 /**
- * @brief Function for handling file download from server to client
+ * @brief Function for handling file upload from client to server (DNLD command)
  * 
  * @param conn_sock client socket descriptor
  * @param client_addr_str client address string
- * @param filename filename to download
+ * @param command_value command value containing filename and filesize
  * @param request_log request log string
  */
-void handle_download_file(int conn_sock, const char *client_addr_str, char *filename, const char *request_log);
+void handle_download_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log);
 
 #endif
