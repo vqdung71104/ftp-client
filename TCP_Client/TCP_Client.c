@@ -4,9 +4,11 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <libgen.h>
+#include <time.h>
 
 #include "utils.h"
 
@@ -75,12 +77,25 @@ void send_chdir_command(int sockfd, char *recv_buf);
 void send_list_command(int sockfd, char *recv_buf);
 
 /**
- * @brief Function for downloading file from server
+ * @brief Function for sending download command to server
  *
  * @param sockfd socket descriptor
  * @param recv_buf buffer to save the result
  */
 void send_download_command(int sockfd, char *recv_buf);
+
+/**
+ * @brief Helper function to print response with timestamp
+ *
+ * @param command_sent command that was sent
+ * @param response response from server
+ */
+void print_response_with_timestamp(const char *command_sent, const char *response)
+{
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    printf("%02d:%02d:%02d %s %s\n", t->tm_hour, t->tm_min, t->tm_sec, command_sent, response);
+}
 
 int main(int argc, char *argv[])
 {
@@ -118,6 +133,15 @@ int main(int argc, char *argv[])
     }
 
     printf("Connected to server at %s:%d\n", server_ip, server_port);
+
+    // Optimize TCP performance
+    int flag = 1;
+    setsockopt(client_sock, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+    
+    int sndbuf = 262144; // 256KB send buffer
+    int rcvbuf = 262144; // 256KB receive buffer
+    setsockopt(client_sock, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf));
+    setsockopt(client_sock, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
 
     // Welcome msg
     int received_bytes = recv(client_sock, buffer, BUFF_SIZE, 0);
@@ -170,7 +194,7 @@ void send_and_response(int sockfd, char *msg, char *recv_buf)
         return;
     }
 
-    printf("Server response: %s\n", recv_buf);
+    print_response_with_timestamp(msg, recv_buf);
 }
 
 void simple_menu(int sockfd, char *recv_buf)
@@ -268,7 +292,7 @@ void send_bye_command(int sockfd, char *recv_buf)
         return;
     }
 
-    printf("Server response: %s\n", recv_buf);
+    print_response_with_timestamp("BYE", recv_buf);
 }
 
 void send_article_command(int sockfd, char *recv_buf)
@@ -322,14 +346,14 @@ void send_upload_command(int sockfd, char *recv_buf)
     // Check if error
     if (strncmp(buffer, "ERR", 3) == 0 || strncmp(buffer, "221", 3) == 0)
     {
-        printf("Server response: %s\n", buffer);
+        print_response_with_timestamp("UPLD", buffer);
         return;
     }
 
     // Parse +OK <filesize>
     if (strncmp(buffer, "+OK", 3) != 0)
     {
-        printf("Unexpected server response: %s\n", buffer);
+        print_response_with_timestamp("UPLD", buffer);
         return;
     }
 
@@ -369,7 +393,9 @@ void send_upload_command(int sockfd, char *recv_buf)
 
     if (total_received == filesize)
     {
-        printf("Uploaded successfully! Saved as: %s\n", filename);
+        char success_msg[256];
+        snprintf(success_msg, sizeof(success_msg), "File uploaded successfully! Saved as: %s", filename);
+        print_response_with_timestamp("UPLD", success_msg);
     }
     else
     {
@@ -397,7 +423,7 @@ void send_chdir_command(int sockfd, char *recv_buf)
         return;
     }
     
-    printf("Thư mục làm việc hiện tại: %s\n", recv_buf);
+    print_response_with_timestamp("GETDIR", recv_buf);
     
     // Step 2: Ask user if they want to change
     char choice;
@@ -435,7 +461,7 @@ void send_chdir_command(int sockfd, char *recv_buf)
                 return;
             }
             
-            printf("Server response: %s\n", recv_buf);
+            print_response_with_timestamp("CHDIR", recv_buf);
             break;
         }
         else if (choice == 'n' || choice == 'N')
@@ -473,13 +499,13 @@ void send_list_command(int sockfd, char *recv_buf)
     // Check if error or success
     if (strncmp(recv_buf, "221:", 4) == 0 || strncmp(recv_buf, "ERR", 3) == 0)
     {
-        printf("Server response: %s\n", recv_buf);
+        print_response_with_timestamp("LIST", recv_buf);
         return;
     }
     
-    // Print header
+    // Print header with timestamp
+    print_response_with_timestamp("LIST", recv_buf);
     printf("\n=== Files in working directory ===\n");
-    printf("%s\n", recv_buf);
     
     // Receive file list (multiple lines)
     while (1)
@@ -560,10 +586,13 @@ void send_download_command(int sockfd, char *recv_buf)
 
     // Check server response
     if (strncmp(buffer, "+OK Please send file", strlen("+OK Please send file")) != 0) {
-        printf("Server is not available for uploading file: %s\n", buffer);
+        print_response_with_timestamp("DNLD", buffer);
         fclose(fp);
         return; 
     }
+    
+    // Print OK response
+    print_response_with_timestamp("DNLD", "+OK Please send file");
 
     printf("Downloading file %s (%ld bytes)... \n", filename, file_size);
     size_t bytes_read;
@@ -588,5 +617,5 @@ void send_download_command(int sockfd, char *recv_buf)
         return;
     }
     buffer[received_bytes] = '\0';
-    printf("Result: %s\n", buffer);
+    print_response_with_timestamp("DNLD", buffer);
 }

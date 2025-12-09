@@ -84,7 +84,7 @@ void login(char *command_value, int client_socket)
     }
     
     send_all(client_socket, return_msg, strlen(return_msg));
-    usleep(1000);
+    usleep(10);
 }
 
 void verify_password(char *password, int client_socket)
@@ -126,7 +126,7 @@ void verify_password(char *password, int client_socket)
     }
     
     send_all(client_socket, return_msg, strlen(return_msg));
-    usleep(1000);
+    usleep(10);
 }
 
 void handle_upload_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log)
@@ -171,7 +171,6 @@ void handle_upload_file(int conn_sock, const char *client_addr_str, char *comman
     // Send OK response with file size
     snprintf(return_msg, sizeof(return_msg), "+OK %ld\r\n", file_size);
     send_all(conn_sock, return_msg, strlen(return_msg));
-    usleep(1000);
     
     // Send file data
     size_t bytes_read;
@@ -220,7 +219,7 @@ void get_current_directory(int client_socket)
     }
     
     send_all(client_socket, return_msg, strlen(return_msg));
-    usleep(1000);
+    usleep(10);
 }
 
 void change_directory(char *new_dir, int client_socket)
@@ -231,7 +230,7 @@ void change_directory(char *new_dir, int client_socket)
     {
         strcpy(return_msg, "221: You have NOT logged in\r\n");
         send_all(client_socket, return_msg, strlen(return_msg));
-        usleep(1000);
+        usleep(10);
         return;
     }
     
@@ -252,7 +251,7 @@ void change_directory(char *new_dir, int client_socket)
     {
         strcpy(return_msg, "240: Failed to update account file\r\n");
         send_all(client_socket, return_msg, strlen(return_msg));
-        usleep(1000);
+        usleep(10);
         return;
     }
     
@@ -264,7 +263,7 @@ void change_directory(char *new_dir, int client_socket)
     
     strcpy(return_msg, "140: Directory changed successfully\r\n");
     send_all(client_socket, return_msg, strlen(return_msg));
-    usleep(1000);
+    usleep(10);
 }
 
 void list_files(int client_socket)
@@ -275,7 +274,7 @@ void list_files(int client_socket)
     {
         strcpy(return_msg, "221: You have NOT logged in\r\n");
         send_all(client_socket, return_msg, strlen(return_msg));
-        usleep(1000);
+        usleep(10);
         return;
     }
     
@@ -285,14 +284,14 @@ void list_files(int client_socket)
     {
         snprintf(return_msg, sizeof(return_msg), "ERR: Cannot open directory %s\r\n", current_root_dir);
         send_all(client_socket, return_msg, strlen(return_msg));
-        usleep(1000);
+        usleep(10);
         return;
     }
     
     // Send success message with directory path
     snprintf(return_msg, sizeof(return_msg), "150: Listing directory: %s\r\n", current_root_dir);
     send_all(client_socket, return_msg, strlen(return_msg));
-    usleep(1000);
+    usleep(10);
     
     // Read and send each file entry
     struct dirent *entry;
@@ -326,7 +325,7 @@ void list_files(int client_socket)
         }
         
         send_all(client_socket, return_msg, strlen(return_msg));
-        usleep(1000);
+        usleep(10);
     }
     
     closedir(dir);
@@ -334,7 +333,7 @@ void list_files(int client_socket)
     // Send end marker
     strcpy(return_msg, "END\r\n");
     send_all(client_socket, return_msg, strlen(return_msg));
-    usleep(1000);
+    usleep(10);
 }
 
 void handle_download_file(int conn_sock, const char *client_addr_str, char *command_value, const char *request_log)

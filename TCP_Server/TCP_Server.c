@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <time.h>
@@ -117,6 +118,15 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        // Optimize TCP performance
+        int flag = 1;
+        setsockopt(conn_sock, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
+        
+        int sndbuf = 262144; // 256KB send buffer
+        int rcvbuf = 262144; // 256KB receive buffer
+        setsockopt(conn_sock, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf));
+        setsockopt(conn_sock, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
+
         char client_addr_str[INET_ADDRSTRLEN + 6];
 
         int welcome_ok = welcome_to_server(conn_sock, client_addr, client_addr_str, sizeof(client_addr_str));
@@ -156,7 +166,10 @@ void handle_client(int conn_sock, const char *client_addr_str, const char *stora
             return;
         }
         
-        printf("Client %s sent command: %s\n", client_addr_str, buffer);
+        // Get current time for logging
+        time_t now = time(NULL);
+        struct tm *t = localtime(&now);
+        printf("%02d:%02d:%02d %s %s\n", t->tm_hour, t->tm_min, t->tm_sec, buffer, client_addr_str);
         
         char request_log[BUFF_SIZE];
         strncpy(request_log, buffer, BUFF_SIZE);
