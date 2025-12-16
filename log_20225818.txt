@@ -211,3 +211,15 @@
 [09/12/2025 21:21:01]$127.0.0.1:37560$PASS 123456\r\n$Login attempt - password
 [09/12/2025 21:21:05]$127.0.0.1:37560$LIST\r\n$List files
 [09/12/2025 21:21:31]$127.0.0.1:37560$UPLD Ronaldogay.jpeg\r\n$+OK File sent successfully
+[12/12/2025 11:00:01]$127.0.0.1:49416$CONNECT$+OK Welcome to file server
+[12/12/2025 11:00:05]$127.0.0.1:49416$USER user1\r\n$Login attempt - username
+[12/12/2025 11:00:07]$127.0.0.1:49416$PASS 123456\r\n$Login attempt - password
+[12/12/2025 11:00:11]$127.0.0.1:49416$LIST\r\n$List files
+[12/12/2025 11:00:53]$127.0.0.1:49416$UPLD ronaldobeo.webp\r\n$+OK File sent successfully
+[12/12/2025 11:01:20]$127.0.0.1:49416$DNLD account.h 2955\r\n$+OK Successful download
+[12/12/2025 11:01:24]$127.0.0.1:49416$LIST\r\n$List files
+[12/12/2025 15:41:38]$127.0.0.1:36476$CONNECT$+OK Welcome to file server
+[12/12/2025 15:41:44]$127.0.0.1:36476$USER user1\r\n$Login attempt - username
+[12/12/2025 15:41:46]$127.0.0.1:36476$PASS 123456\r\n$Login attempt - password
+[12/12/2025 15:41:51]$127.0.0.1:36476$LIST\r\n$List files
+[12/12/2025 15:42:17]$127.0.0.1:36476$UPLD Ronaldogay.jpeg\r\n$+OK File sent successfully

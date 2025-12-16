@@ -2,28 +2,35 @@
 
 ## Mô tả
 
-Dự án này là một ứng dụng client-server đơn giản với các chức năng:
-- **Đăng nhập (LOGIN)**: Xác thực người dùng với tài khoản trong file `account.txt`
-- **Đăng xuất (LOGOUT)**: Đăng xuất khỏi hệ thống
-- **Đăng bài (POST)**: Đăng một tin nhắn lên server (yêu cầu đã đăng nhập)
-- **Upload file (UPLD)**: Upload file từ client lên thư mục làm việc của user trên server
-- **Download file (DNLD)**: Tải file từ thư mục làm việc của user trên server về client
-- **Thay đổi thư mục làm việc (CHDIR)**: Thay đổi root directory của user
-- **Liệt kê file (LIST)**: Hiển thị danh sách file trong thư mục làm việc của user
+Dự án này là một ứng dụng FTP (File Transfer Protocol) client-server tuân thủ chuẩn RFC 959 với các chức năng:
+- **Xác thực người dùng (USER/PASS)**: Đăng nhập với tài khoản trong file `account.txt`
+- **Quản lý thư mục**: PWD, CWD, CDUP, MKD, RMD
+- **Truyền file**: STOR (upload), RETR (download)
+- **Liệt kê file**: LIST, NLST
+- **Xóa file**: DELE, RMD
+- **Passive mode (PASV)**: Hỗ trợ truyền dữ liệu qua passive connection
+- **Compatible với FileZilla**: Server có thể làm việc với FileZilla client
 
 ## Cấu trúc dự án
 
 ```
 .
-├── TCP_Client/
-│   └── TCP_Client.c          # Mã nguồn client
-├── TCP_Server/
-│   └── TCP_Server.c          # Mã nguồn server
+├── FTP_Client/
+│   └── ftp_client.c          # Mã nguồn FTP client
+├── FTP_Server/
+│   ├── ftp_server.c          # Mã nguồn chính FTP server
+│   ├── ftp_server.h          # Header file
+│   ├── ftp_commands.c        # Xử lý các FTP commands
+│   ├── ftp_data.c            # Xử lý data connection
+│   └── ftp_utils.c           # Các hàm tiện ích
 ├── utils/
 │   ├── account.c/h           # Quản lý tài khoản
-│   ├── service.c/h           # Xử lý các service (login, post, upload)
 │   ├── logging.c/h           # Ghi log hoạt động
 │   └── utils.c/h             # Các hàm tiện ích
+├── build/
+│   ├── ftp_server            # FTP server executable
+│   └── ftp_client            # FTP client executable
+├── logs/                     # Thư mục chứa log files
 ├── account.txt               # File chứa danh sách tài khoản
 ├── Makefile                  # File build project
 └── README.md                 # File hướng dẫn này
@@ -33,469 +40,405 @@ Dự án này là một ứng dụng client-server đơn giản với các chứ
 
 ### 1. Biên dịch
 
+Sử dụng Makefile để build cả server và client:
+
 ```bash
-make clean
-make
+make          # Build cả server và client
+make clean    # Xóa các file build
+make rebuild  # Clean và build lại
+make help     # Hiển thị hướng dẫn
 ```
 
 ### 2. Chuẩn bị file account.txt
 
 Tạo file `account.txt` trong thư mục gốc của project với format:
 ```
-username status
+username password root_dir status
 ```
 Trong đó:
 - `username`: Tên người dùng (không chứa khoảng trắng)
+- `password`: Mật khẩu (không chứa khoảng trắng)
+- `root_dir`: Thư mục gốc của user (đường dẫn tuyệt đối)
 - `status`: 0 (banned) hoặc 1 (active)
 
 Ví dụ:
 ```
-admin 123456 /mnt/d/ftp-client/TCP_Server 1
-user1 123456 /mnt/d/ftp-client/TCP_Client 1
-user2 123456 /mnt/d/ftp-client/TCP_Client 0
-banned_user 123456 /mnt/d/ftp-client/TCP_Client 0
-testuser 123456 /mnt/d/ftp-client/TCP_Client 1
-
+admin 123456 /mnt/d/ftp-client/FTP_Server 1
+user1 123456 /mnt/d/ftp-client/FTP_Client/user1 1
+user2 123456 /mnt/d/ftp-client/FTP_Client 0
+testuser 123456 /mnt/d/ftp-client/FTP_Client 1
 ```
 
-### 3. Chạy server
+### 3. Chạy FTP Server
 
 ```bash
-./build/server <port> <storage_directory>
+make run-server
+# hoặc
+./build/ftp_server <port>
 ```
 
 Ví dụ:
 ```bash
-./build/server 8080 build/storage
+./build/ftp_server 2121
 ```
 
-### 4. Chạy client
+### 4. Chạy FTP Client
+
+Mở terminal mới và chạy:
 
 ```bash
-./build/client <server_ip> <port>
+make run-client
+# hoặc
+./build/ftp_client
 ```
 
-Ví dụ:
+Client sẽ tự động kết nối đến `127.0.0.1:2121`. Để kết nối đến server khác, chỉnh sửa trong mã nguồn.
+
+### 5. Chạy cả Server và Client
+
 ```bash
-./build/client 127.0.0.1 8080
+make run-both
 ```
 
-### 5. Sử dụng menu client
+Lệnh này sẽ chạy server ở background, sau đó khởi động client.
+
+### 6. Sử dụng với FileZilla Client
+
+FTP Server cũng tương thích với FileZilla Client:
+
+1. Mở FileZilla Client
+2. Host: `127.0.0.1` hoặc `localhost`
+3. Username: theo `account.txt` (ví dụ: `user1`)
+4. Password: theo `account.txt` (ví dụ: `123456`)
+5. Port: `2121`
+6. Nhấn "Quickconnect"
+
+### 7. Sử dụng FTP Client Menu
 
 Sau khi kết nối thành công, client sẽ hiển thị menu:
 
 ```
---- Simple Menu ---
-1. Login
-2. Upload file
-3. Download file
-4. List files in working directory
-5. Change working directory
-6. Logout
+=== FTP Client Menu ===
+1. Login (USER/PASS)
+2. Print Working Directory (PWD)
+3. Change Working Directory (CWD)
+4. List Files (LIST)
+5. Download File (RETR)
+6. Upload File (STOR)
 7. Exit
 ```
 
 #### Chức năng chi tiết:
 
-**1. Login**
-- Nhập username để đăng nhập
+**1. Login (USER/PASS)**
+- Nhập username và password
 - Server sẽ kiểm tra trong file `account.txt`
-- Phản hồi:
-  - `110: Account exist and active` - Đăng nhập thành công
-  - `212: Account does NOT exist` - Tài khoản không tồn tại
-  - `211: Account IS banned` - Tài khoản bị khóa
-  - `213: You have already logged in` - Đã đăng nhập rồi
+- Response codes:
+  - `230 User logged in` - Đăng nhập thành công
+  - `530 Not logged in` - Tài khoản bị banned hoặc không tồn tại
+  - `530 Login incorrect` - Sai password
 
-p
-
-**2. Upload file**
-- Nhập tên file cần tải từ server về
+**2. Print Working Directory (PWD)**
+- Hiển thị đường dẫn thư mục làm việc hiện tại (absolute path)
 - **Yêu cầu đã đăng nhập**
-- File sẽ được tải từ **thư mục làm việc (root_dir) của user trên server** về thư mục hiện tại của client
-- Ví dụ: Nếu đăng nhập là user1 với root_dir `/mnt/d/ftp-client/TCP_Client`, file sẽ được tải từ `/mnt/d/ftp-client/TCP_Client/<filename>` về thư mục hiện tại
-- Phản hồi:
-  - `+OK <filesize>` - Server gửi file với kích thước
-  - `ERR: File not found` - File không tồn tại trên server
-  - `221: You have NOT logged in` - Chưa đăng nhập
+- Response: `257 "/path/to/current/dir" is current directory`
+- Ví dụ: `/mnt/d/ftp-client/FTP_Client/user1`
 
-**3. Download file**
-- Nhập đường dẫn file cần upload từ client lên server
-- **Yêu cầu đã đăng nhập**
-- File sẽ được gửi lên và lưu vào **thư mục làm việc (root_dir) của user trên server**
-- Ví dụ: Nếu đăng nhập là user1 với root_dir `/mnt/d/ftp-client/TCP_Client`, file sẽ được upload vào `/mnt/d/ftp-client/TCP_Client/<filename>`
-- Phản hồi:
-  - `+OK Please send file` - Server sẵn sàng nhận file
-  - `OK Successful upload` - Upload thành công
-  - `ERR Upload failed` - Upload thất bại
-  - `221: You have NOT logged in` - Chưa đăng nhập
-
-  **4. List files in working directory**
-- Liệt kê tất cả file và thư mục trong thư mục làm việc
-- **Yêu cầu đã đăng nhập**
-- Hiển thị:
-  - `[DIR]` cho thư mục
-  - `[FILE]` cho file kèm theo kích thước
-- Phản hồi:
-  - `150: Listing directory: <path>` - Bắt đầu liệt kê
-  - `END` - Kết thúc danh sách
-  - `ERR: Cannot open directory` - Lỗi mở thư mục
-  - `221: You have NOT logged in` - Chưa đăng nhập
-
-**5. Change working directory**
+**3. Change Working Directory (CWD)**
 - Thay đổi thư mục làm việc
 - **Yêu cầu đã đăng nhập**
-- Hiển thị thư mục làm việc hiện tại
-- Nếu muốn thay đổi thì ấn "y", nếu không ấn "n"
-- Nhập đường dẫn thư mục làm việc mới
-- Hệ thống cập nhật lại và sửa file account.txt
-- Phản hồi:
-  - `140: Directory changed successfully` - Thay đổi thành công
-  - `240: Failed to update account file` - Lỗi cập nhật file
-  - `221: You have NOT logged in` - Chưa đăng nhập
+- Nhập đường dẫn tuyệt đối (ví dụ: `/mnt/d/ftp-client/utils`)
+- Khi thay đổi thành công, root_dir của user trong `account.txt` cũng được cập nhật
+- Response codes:
+  - `250 File action okay, completed` - Thành công
+  - `550 Directory not found` - Thư mục không tồn tại
+  - `550 Permission denied` - Không có quyền truy cập
 
-**6. Logout**
-- Đăng xuất khỏi hệ thống
-- Phản hồi:
-  - `130: Logout successfully` - Đăng xuất thành công
-  - `221: You have NOT logged in` - Chưa đăng nhập
+**4. List Files (LIST)**
+- Liệt kê tất cả file và thư mục trong thư mục làm việc
+- **Yêu cầu đã đăng nhập**
+- Hiển thị thông tin chi tiết: permissions, owner, size, date, filename
+- Sử dụng data connection (PASV mode)
+
+**5. Download File (RETR)**
+- Tải file từ server về client
+- **Yêu cầu đã đăng nhập**
+- Nhập tên file (relative to current directory)
+- File sẽ được lưu vào thư mục hiện tại của client
+- Response codes:
+  - `150 File status okay` - Bắt đầu truyền
+  - `226 Transfer complete` - Hoàn tất
+  - `550 File unavailable` - File không tồn tại
+
+**6. Upload File (STOR)**
+- Upload file từ client lên server
+- **Yêu cầu đã đăng nhập**
+- Nhập đường dẫn file trên client
+- File sẽ được lưu vào thư mục làm việc hiện tại trên server
+- Response codes:
+  - `150 File status okay` - Bắt đầu nhận
+  - `226 Transfer complete` - Upload thành công
+  - `550 Permission denied` - Không có quyền ghi
 
 **7. Exit**
-- Thoát chương trình client
+- Gửi lệnh QUIT và đóng kết nối
 
-## Protocol
+## FTP Protocol Implementation
 
-### Format lệnh
+### Các lệnh FTP được hỗ trợ
 
-Tất cả các lệnh gửi lên server đều kết thúc bằng `\r\n`
+Server hỗ trợ các lệnh FTP chuẩn theo RFC 959:
 
-1. **USER command**: `USER <username>\r\n`
-2. **PASS command**: `PASS <password>\r\n`
-3. **POST command**: `POST <message>\r\n`
-4. **UPLD command**: `UPLD <filename>\r\n` - Tải file từ server về client
-5. **DNLD command**: `DNLD <filename> <filesize>\r\n` - Gửi file từ client lên server
-6. **CHDIR command**: `CHDIR <new_directory>\r\n`
-7. **GETDIR command**: `GETDIR\r\n`
-8. **LIST command**: `LIST\r\n`
-9. **BYE command**: `BYE\r\n`
+#### Authentication Commands
+- **USER <username>**: Gửi username để đăng nhập
+- **PASS <password>**: Gửi password sau khi gửi USER
 
-### Response codes
+#### Directory Commands
+- **PWD**: Hiển thị thư mục làm việc hiện tại (absolute path)
+- **CWD <path>**: Thay đổi thư mục làm việc, cập nhật `account.txt`
+- **CDUP**: Di chuyển lên thư mục cha
+- **MKD <dirname>**: Tạo thư mục mới
+- **RMD <dirname>**: Xóa thư mục
 
-- `1xx`: Thành công
-  - `110`: Login successful
-  - `111`: Username OK, need password
-  - `120`: Post successfully
-  - `130`: Logout successfully
-  - `140`: Directory changed successfully
-  - `150`: Listing directory / Current directory
-- `2xx`: Lỗi liên quan đến user
-  - `211`: Account IS banned
-  - `212`: Account does NOT exist
-  - `213`: You have already logged in
-  - `214`: Incorrect password
-  - `220`: Please send username first
-  - `221`: You have NOT logged in
-  - `240`: Failed to update account file
-- `3xx`: Lỗi command không hợp lệ
-  - `300`: Unknown command
-- `+OK`: Thành công (dùng cho file transfer)
-  - `+OK <filesize>` - Server gửi file (UPLD command - tải từ server về)
-  - `+OK Please send file` - Server sẵn sàng nhận file (DNLD command - gửi lên server)
-  - `OK Successful upload` - Hoàn tất upload file lên server
-- `ERR`: Lỗi (dùng cho file transfer)
-  - `ERR Invalid command`
-  - `ERR Invalid filesize`
-  - `ERR Cannot create file`
-  - `ERR Upload failed`
-  - `ERR: File not found`
-  - `ERR: Cannot open directory`
-- `END`: Đánh dấu kết thúc danh sách file
+#### File Transfer Commands
+- **PASV**: Chuyển sang passive mode để truyền dữ liệu
+- **LIST [path]**: Liệt kê file và thư mục (chi tiết)
+- **NLST [path]**: Liệt kê tên file đơn giản
+- **RETR <filename>**: Download file từ server
+- **STOR <filename>**: Upload file lên server
+- **DELE <filename>**: Xóa file
+- **SIZE <filename>**: Lấy kích thước file
+
+#### Connection Commands
+- **TYPE <type>**: Đặt kiểu truyền (I: binary, A: ASCII)
+- **QUIT**: Đóng kết nối
+
+### FTP Response Codes
+
+Server trả về các response code chuẩn FTP theo RFC 959:
+
+- **1xx - Positive Preliminary**: Đang xử lý
+  - `150` - File status okay; about to open data connection
+  
+- **2xx - Positive Completion**: Thành công
+  - `200` - Command okay
+  - `220` - Service ready for new user
+  - `221` - Service closing control connection
+  - `226` - Closing data connection, transfer complete
+  - `227` - Entering Passive Mode (h1,h2,h3,h4,p1,p2)
+  - `230` - User logged in, proceed
+  - `250` - Requested file action okay, completed
+  - `257` - "PATHNAME" created
+
+- **3xx - Positive Intermediate**: Cần thêm thông tin
+  - `331` - User name okay, need password
+
+- **4xx - Transient Negative**: Lỗi tạm thời
+  - `425` - Can't open data connection
+  - `426` - Connection closed; transfer aborted
+  - `450` - Requested file action not taken
+
+- **5xx - Permanent Negative**: Lỗi vĩnh viễn
+  - `500` - Syntax error, command unrecognized
+  - `501` - Syntax error in parameters or arguments
+  - `502` - Command not implemented
+  - `503` - Bad sequence of commands
+  - `530` - Not logged in
+  - `550` - Requested action not taken (file unavailable, permission denied, directory not found, etc.)
 
 ## Logging
 
 Server ghi log tất cả các hoạt động vào file trong thư mục `logs/`. Log bao gồm:
 - Thời gian
 - Địa chỉ IP:Port của client
-- Lệnh được gửi
-- Kết quả xử lý
+- Lệnh FTP được gửi
+- Response code và kết quả
 
-Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Request: <command> | Response: <result>`
+Format log: `[YYYY-MM-DD HH:MM:SS] <IP:Port> | Command: <FTP_COMMAND> | Response: <code>`
 
-## Lưu ý
+## Tính năng đặc biệt
 
-1. Server chạy ở chế độ iterative (xử lý từng client một lần)
-2. File `account.txt` phải tồn tại trước khi chạy server với format: `username password root_dir status`
-3. Thư mục storage sẽ được tự động tạo nếu chưa tồn tại
-4. Client sử dụng `recv_line()` để đọc response từ server (kết thúc bằng `\r\n`)
-5. **UPLD và DNLD đều yêu cầu đã đăng nhập**
-6. **UPLD (option 2)**: Tải file từ `root_dir` của user trên server về thư mục hiện tại của client
-7. **DNLD (option 3)**: Gửi file từ client lên `root_dir` của user trên server
-8. Mỗi user có `root_dir` riêng, được định nghĩa trong `account.txt`
-9. Chức năng CHDIR cho phép thay đổi `root_dir` và cập nhật vào `account.txt`
+1. **Multi-threaded Server**: Server sử dụng pthread để xử lý đồng thời nhiều client
+2. **Passive Mode (PASV)**: Hỗ trợ data transfer qua passive connection
+3. **Root Directory Management**: 
+   - Mỗi user có `root_dir` riêng được định nghĩa trong `account.txt`
+   - Khi CWD thành công, `root_dir` được cập nhật tự động trong `account.txt`
+   - User không thể truy cập ngoài `root_dir` của mình (chroot jail)
+4. **Binary và ASCII Mode**: Hỗ trợ cả TYPE I (binary) và TYPE A (ASCII)
+5. **FileZilla Compatible**: Server tương thích với FileZilla Client và các FTP client khác
 
-## Mô tả chi tiết cách hoạt động
+## Lưu ý quan trọng
+
+1. File `account.txt` phải tồn tại với format: `username password root_dir status`
+2. Thư mục `root_dir` của mỗi user phải tồn tại và có quyền truy cập
+3. Thư mục `logs/` sẽ được tự động tạo để lưu log files
+4. Server lắng nghe trên port được chỉ định (mặc định: 2121)
+5. Tất cả lệnh FTP kết thúc bằng `\r\n` (CRLF)
+6. Data connection sử dụng passive mode (PASV) để tránh firewall issues
+7. **Bảo mật**: Server thực hiện path validation để ngăn directory traversal attacks
+
+## Kiến trúc hệ thống
+
+### FTP Server (FTP_Server/)
+
+**Multi-threaded Architecture**:
+- Server sử dụng pthread để xử lý đồng thời nhiều client connections
+- Mỗi client được xử lý trong một thread riêng biệt
+- Control connection và data connection được quản lý độc lập
+
+**Cấu trúc module**:
+- **ftp_server.c**: Main server, xử lý connections và authentication
+- **ftp_commands.c**: Xử lý các FTP commands (PWD, CWD, CDUP, etc.)
+- **ftp_data.c**: Xử lý data transfer (RETR, STOR, LIST)
+- **ftp_utils.c**: Path validation, security checks
+- **ftp_server.h**: Định nghĩa structures và constants
+
+**Session Management**:
+```c
+typedef struct {
+    int control_sock;           // Control connection socket
+    int data_sock;              // Data connection socket
+    char current_dir[1024];     // Current directory (relative to root)
+    char root_dir[1024];        // User's root directory
+    int logged_in;              // Authentication status
+    char username[256];         // Logged in username
+    int binary_mode;            // Transfer mode (1=binary, 0=ASCII)
+    struct sockaddr_in addr;    // Client address
+    int pasv_sock;              // Passive mode listening socket
+} ftp_session_t;
+```
+
+### FTP Client (FTP_Client/)
+
+**Chức năng chính**:
+- Kết nối đến FTP server qua control connection
+- Xử lý các lệnh FTP: USER, PASS, PWD, CWD, LIST, RETR, STOR, DELE
+- Tự động thiết lập data connection qua PASV mode
+- Interactive menu để người dùng dễ sử dụng
+
+### Utils Module
+
+**account.c/h**: Quản lý tài khoản
+- `read_file_data()`: Đọc account.txt vào memory
+- `update_user_root_dir()`: Cập nhật root_dir của user trong account.txt
+
+**logging.c/h**: Logging system
+- Ghi log tất cả các hoạt động vào `logs/` directory
+- Format: `[TIMESTAMP] IP:Port | Command | Response`
+
+**utils.c/h**: Utility functions
+- `recv_line()`: Nhận dữ liệu đến khi gặp CRLF
+- `send_all()`: Đảm bảo gửi hết dữ liệu
+- Path manipulation và validation functions
 
 ### Makefile
 
-**Mục đích**: Tự động hóa quá trình biên dịch và liên kết project
-
-**Cấu trúc**:
+**Targets chính**:
 - **Compiler và Flags**:
-  - `CC = gcc`: Sử dụng GCC compiler
-  - `CFLAGS = -std=c11 -Wall -Wextra -D_POSIX_C_SOURCE=200112L -Iutils`: Cờ biên dịch (C11 standard, hiển thị warnings, định nghĩa POSIX, include thư mục utils)
-  - `LDFLAGS`: Cờ cho linker (hiện tại trống)
+  - `CC = gcc`: GCC compiler
+  - `CFLAGS = -Wall -Wextra -g`: Enable warnings và debug symbols
+  - `LDFLAGS = -lpthread`: Link với pthread library
 
-- **VPATH**: Chỉ định các thư mục chứa source files (`utils:TCP_Client:TCP_Server`)
+- **Build Targets**:
+  - `all`: Build cả FTP server và client
+  - `run-server`: Build và chạy FTP server (port 2121)
+  - `run-client`: Build và chạy FTP client
+  - `run-both`: Chạy server (background) và client
+  - `clean`: Xóa object files và executables
+  - `rebuild`: Clean và build lại
+  - `help`: Hiển thị trợ giúp
 
-- **Directories và Targets**:
-  - `BUILD_DIR = build`: Thư mục chứa file output
-  - `TARGET_CLIENT = $(BUILD_DIR)/client`: File thực thi client
-  - `TARGET_SERVER = $(BUILD_DIR)/server`: File thực thi server
-
-- **Source và Object Files**:
-  - `UTILS_SRC`: Tất cả file `.c` trong thư mục `utils/` (sử dụng `wildcard`)
-  - `CLIENT_SRC`: `TCP_Client/TCP_Client.c`
-  - `SERVER_SRC`: `TCP_Server/TCP_Server.c`
-  - Tạo danh sách object files (`.o`) tương ứng với mỗi source file
-
-- **Quy tắc biên dịch**:
-  1. `all`: Biên dịch cả client và server, tạo thư mục `build/storage` và `logs`
-  2. Linking rules: Liên kết object files thành executable
-     - Client: `$(CLIENT_OBJ) + $(UTILS_OBJS) → client`
-     - Server: `$(SERVER_OBJ) + $(UTILS_OBJS) → server`
-  3. Pattern rule `$(BUILD_DIR)/%.o: %.c`: Biên dịch mọi file `.c` thành `.o`
-  4. `clean`: Xóa thư mục build
-  5. `package`: Đóng gói source code thành file zip
+- **Source Files**:
+  - **Server**: FTP_Server/*.c + utils/*.c
+  - **Client**: FTP_Client/ftp_client.c
+  - Object files được tạo trong cùng thư mục với source files
 
 **Cách hoạt động**:
-1. Khi chạy `make`, nó sẽ:
-   - Tìm tất cả file `.c` trong `utils/`
-   - Biên dịch từng file `.c` thành `.o` và lưu vào `build/`
-   - Liên kết các object files thành 2 executable: `build/client` và `build/server`
-   - Tạo thư mục `build/storage` và `logs` nếu chưa tồn tại
+1. Khi chạy `make`:
+   - Biên dịch tất cả `.c` thành `.o` files
+   - Link server: `ftp_server.o + ftp_commands.o + ftp_data.o + ftp_utils.o + utils/*.o → build/ftp_server`
+   - Link client: `ftp_client.o → build/ftp_client`
+   - Tạo thư mục `build/` nếu chưa tồn tại
 
-### TCP_Client/TCP_Client.c
+## Data Transfer Flow
 
-**Mục đích**: Chương trình client kết nối đến server để thực hiện các thao tác file transfer
+### PASV Mode (Passive Mode)
 
-**Cấu trúc chính**:
+Server sử dụng PASV mode cho data transfer:
 
-1. **main()**:
-   - Nhận tham số: `<IP_Address> <Port_number>`
-   - Tạo socket TCP
-   - Kết nối đến server
-   - Nhận welcome message
-   - Gọi `simple_menu()` để hiển thị menu tương tác
-
-2. **simple_menu()**:
-   - Hiển thị menu với 8 tùy chọn
-   - Đọc lựa chọn từ người dùng
-   - Gọi hàm xử lý tương ứng
-   - Lặp lại cho đến khi user chọn Exit (option 8)
-
-3. **send_login_command()**:
-   - Gửi `USER <username>` đến server
-   - Nếu server trả về `111` (Username OK, need password):
-     - Gửi `PASS <password>` đến server
-   - Xử lý các response codes khác (212, 211, 213, 214)
-
-4. **send_article_command()**:
-   - Nhận nội dung tin nhắn từ user
-   - Gửi `POST <message>` đến server
-   - Nhận và hiển thị response
-
-5. **send_upload_command()**:
-   - Nhận đường dẫn file từ user
-   - Mở file và lấy kích thước
-   - Gửi `UPLD <filename> <filesize>` đến server
-   - Chờ server response `+OK Please send file`
-   - Đọc file theo từng chunk (16KB) và gửi qua socket
-   - Nhận response cuối cùng (`OK Successful upload` hoặc `ERR Upload failed`)
-
-6. **send_download_command()**:
-   - Nhận tên file từ user
-   - Gửi `DNLD <filename>` đến server
-   - Nhận response `+OK <filesize>` từ server
-   - Tạo file mới trong thư mục hiện tại
-   - Nhận dữ liệu file theo từng chunk và ghi vào file
-   - Kiểm tra tổng số byte nhận được có khớp với filesize không
-
-7. **send_chdir_command()**:
-   - Gửi `GETDIR` để lấy thư mục làm việc hiện tại
-   - Hỏi user có muốn thay đổi không (y/n)
-   - Nếu có: gửi `CHDIR <new_directory>` đến server
-   - Nhận và hiển thị response
-
-8. **send_list_command()**:
-   - Gửi `LIST` đến server
-   - Nhận danh sách file/thư mục từng dòng
-   - Hiển thị cho đến khi nhận được marker `END`
-
-9. **send_bye_command()**:
-   - Gửi `BYE` đến server
-   - Nhận response (130: Logout successfully hoặc 221: Not logged in)
-
-**Các hàm tiện ích sử dụng** (từ `utils/`):
-- `send_all()`: Đảm bảo gửi hết toàn bộ dữ liệu
-- `recv_line()`: Nhận dữ liệu cho đến khi gặp `\r\n`
-- `get_file_size()`: Lấy kích thước file
-
-### TCP_Server/TCP_Server.c
-
-**Mục đích**: Chương trình server lắng nghe kết nối từ client và xử lý các request
-
-**Cấu trúc chính**:
-
-1. **main()**:
-   - Nhận tham số: `<Port_number> <Directory_name>`
-   - Đọc file `account.txt` bằng `read_file_data()` (từ `utils/account.c`)
-   - Tạo listening socket
-   - Set `SO_REUSEADDR` để tránh lỗi "Address already in use"
-   - Bind socket vào địa chỉ `INADDR_ANY:<port>`
-   - Listen với backlog = 2
-   - Vòng lặp chấp nhận kết nối:
-     - `accept()` kết nối mới
-     - Gọi `welcome_to_server()` để gửi welcome message
-     - Gọi `handle_client()` để xử lý request
-     - Đóng connection socket
-
-2. **welcome_to_server()**:
-   - Lấy IP và port của client từ `struct sockaddr_in`
-   - Format thành string `<IP>:<Port>`
-   - Gửi welcome message: `+OK Welcome to file server`
-   - Log sự kiện connect
-
-3. **handle_client()**:
-   - Vòng lặp nhận và xử lý commands:
-     - Gọi `recv_line()` để nhận command (kết thúc bằng `\r\n`)
-     - Parse command thành 2 phần: `command` và `command_value`
-     - Dùng `strchr()` để tìm khoảng trắng đầu tiên
-   
-   - **Xử lý các commands**:
-     - `USER <username>`: Gọi `login()` từ `utils/service.c`
-     - `PASS <password>`: Gọi `verify_password()` từ `utils/service.c`
-     - `UPLD <filename> <filesize>`: Gọi `handle_upload_file()` từ `utils/service.c`
-     - `DNLD <filename>`: Gọi `handle_download_file()` từ `utils/service.c`
-     - `CHDIR <new_dir>`: Gọi `change_directory()` từ `utils/service.c`
-     - `GETDIR`: Gọi `get_current_directory()` từ `utils/service.c`
-     - `LIST`: Gọi `list_files()` từ `utils/service.c`
-     - `BYE`: Xử lý logout (set `is_logged_in = 0`, clear user info)
-     - Unknown command: Trả về `300: Unknown command`
-   
-   - Mỗi command được log vào file trong `logs/`
-
-**Global variables** (từ `utils/account.h`):
-- `users[]`: Mảng chứa thông tin tài khoản
-- `count`: Số lượng tài khoản
-- `is_logged_in`: Trạng thái đăng nhập (0/1)
-- `current_username[]`: Username hiện tại
-- `current_root_dir[]`: Thư mục làm việc của user hiện tại
-- `pending_username[]`: Username đang chờ nhập password
-
-### utils/service.c - Các hàm xử lý logic
-
-1. **user_validation(username)**:
-   - Duyệt mảng `users[]` để tìm username
-   - Trả về: 1 (valid & active), 0 (not exist), -1 (banned)
-
-2. **password_validation(username, password)**:
-   - Tìm user và so sánh password
-   - Trả về: 1 (correct), 0 (incorrect hoặc user not found)
-
-3. **login(username, client_socket)**:
-   - Kiểm tra nếu đã logged in → trả về 213
-   - Gọi `user_validation()`
-   - Nếu valid → trả về 111 (need password), lưu vào `pending_username`
-   - Nếu not exist → trả về 212
-   - Nếu banned → trả về 211
-
-4. **verify_password(password, client_socket)**:
-   - Kiểm tra nếu đã logged in → trả về 213
-   - Kiểm tra nếu chưa gửi username → trả về 220
-   - Gọi `password_validation()`
-   - Nếu đúng → trả về 110, set `is_logged_in = 1`, lưu user info vào `current_username` và `current_root_dir`
-   - Nếu sai → trả về 214, xóa `pending_username`
-
-5. **handle_upload_file(conn_sock, client_addr_str, command_value, request_log)** - Xử lý UPLD (tải từ server về client):
-   - Kiểm tra `is_logged_in` → nếu chưa: trả về 221
-   - `command_value` là tên file cần gửi
-   - Tạo đường dẫn: `<current_root_dir>/<filename>`
-   - Mở file để đọc (`fopen(..., "rb")`)
-   - Nếu không tồn tại → trả về `ERR: File not found`
-   - Lấy kích thước file bằng `get_file_size()`
-   - Gửi `+OK <filesize>`
-   - Đọc file theo chunk (16KB) và gửi qua socket
-   - Log kết quả
-
-6. **handle_download_file(conn_sock, client_addr_str, command_value, request_log)** - Xử lý DNLD (nhận từ client lên server):
-   - Kiểm tra `is_logged_in` → nếu chưa: trả về 221
-   - Parse `command_value` thành `filename` và `filesize`
-   - Tạo đường dẫn: `<current_root_dir>/<filename>`
-   - Tạo thư mục nếu chưa tồn tại
-   - Mở file để ghi (`fopen(..., "wb")`)
-   - Gửi `+OK Please send file`
-   - Nhận dữ liệu file theo chunk (16KB) cho đến khi đủ `filesize` bytes
-   - Ghi vào file
-   - Trả về `OK Successful upload` hoặc `ERR Upload failed`
-   - Log kết quả
-
-7. **get_current_directory(client_socket)**:
-   - Kiểm tra `is_logged_in`
-   - Trả về `150: Current directory: <current_root_dir>`
-
-8. **change_directory(new_dir, client_socket)**:
-   - Kiểm tra `is_logged_in`
-   - Cập nhật `current_root_dir` và `users[i].root_dir`
-   - Ghi lại toàn bộ mảng `users[]` vào file `account.txt`
-   - Trả về 140 (success) hoặc 240 (failed)
-
-9. **list_files(client_socket)**:
-    - Kiểm tra `is_logged_in`
-    - Mở thư mục `current_root_dir` bằng `opendir()`
-    - Duyệt từng entry bằng `readdir()`
-    - Bỏ qua `.` và `..`
-    - Lấy thông tin file bằng `stat()`
-    - Gửi từng dòng: `[DIR]` hoặc `[FILE] filename (size bytes)`
-    - Gửi marker `END` để đánh dấu kết thúc
-
-### Flow hoạt động tổng thể
-
-**UPLD - Tải file từ Server về Client (Server → Client)**:
 ```
 Client                          Server
   |                               |
-  |--- UPLD file.txt ------------->|
-  |                               | (check login, open file from root_dir)
-  |<---- +OK 1024 ----------------|
+  |--- PASV ---------------------->|
+  |                               | (create listening socket)
+  |<--- 227 Entering Passive -----|
+  |     Mode (h1,h2,h3,h4,p1,p2)  |
   |                               |
-  |<--- [file data chunk 1] ------|
-  |<--- [file data chunk 2] ------|
-  |<--- [file data chunk N] ------|
+  | (connect to server's data port)|
   |                               |
-  | (save to current directory)   |
+  |--- LIST/RETR/STOR ----------->|
+  |                               | (accept data connection)
+  |<==== Data transfer =========>|
+  |                               |
+  |<--- 226 Transfer complete ----|
 ```
 
-**DNLD - Gửi file từ Client lên Server (Client → Server)**:
+### File Transfer Example (RETR - Download)
+
 ```
 Client                          Server
   |                               |
-  |--- DNLD file.txt 1024 ------->|
-  |                               | (check login, parse command)
-  |<---- +OK Please send file ----|
+  |--- USER user1 --------------->|
+  |<--- 331 Need password --------|
+  |--- PASS 123456 -------------->|
+  |<--- 230 Logged in ------------|
   |                               |
-  |--- [file data chunk 1] ------>|
-  |--- [file data chunk 2] ------>|
-  |--- [file data chunk N] ------>|
-  |                               | (save to current_root_dir/file.txt)
-  |<---- OK Successful upload ----|
+  |--- PASV ---------------------->|
+  |<--- 227 Passive Mode ---------|
+  |                               |
+  |--- RETR file.txt ------------>|
+  |                               | (check permissions, open file)
+  |<--- 150 Opening connection ---|
+  | (connect to data port)        |
+  |<==== File data ==============>|
+  |<--- 226 Transfer complete ----|
 ```
 
-**Session management**:
-- Mỗi user có `root_dir` riêng định nghĩa trong `account.txt`
-- Khi login thành công, `current_root_dir` được set bằng `root_dir` của user
-- Mọi thao tác file (upload/download/list) đều thực hiện trong `current_root_dir`
-- Có thể thay đổi `root_dir` bằng command CHDIR
+### File Upload Example (STOR)
 
-## Tác giả
+```
+Client                          Server
+  |                               |
+  |--- USER user1 --------------->|
+  |<--- 331 Need password --------|
+  |--- PASS 123456 -------------->|
+  |<--- 230 Logged in ------------|
+  |                               |
+  |--- PASV ---------------------->|
+  |<--- 227 Passive Mode ---------|
+  |                               |
+  |--- STOR newfile.txt --------->|
+  |                               | (check permissions, create file)
+  |<--- 150 Ready to receive -----|
+  | (connect to data port)        |
+  |===== File data ==============>|
+  |<--- 226 Transfer complete ----|
+```
 
-Vũ Quang Dũng
+## Bảo mật
+
+1. **Path Validation**: Ngăn chặn directory traversal attacks (`../../../etc/passwd`)
+2. **User Isolation**: Mỗi user chỉ truy cập được `root_dir` của mình
+3. **Authentication**: Bắt buộc đăng nhập trước khi thực hiện operations
+4. **Permission Checks**: Kiểm tra quyền truy cập file/directory trước khi thao tác
+
+## Khác biệt so với FTP standard
+
+1. **CWD behavior**: Khi CWD thành công, `root_dir` trong `account.txt` được cập nhật
+2. **PWD output**: Hiển thị absolute path thay vì relative path
+3. **Multi-user support**: Mỗi user có workspace riêng biệt
+
+
+
+---
 

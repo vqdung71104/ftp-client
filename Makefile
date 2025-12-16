@@ -1,60 +1,98 @@
-# --- Compiler and Flags ---
+# Compiler and flags
 CC = gcc
-# Thêm LDFLAGS để chứa các cờ cho linker
-LDFLAGS =
-# Cờ cho trình biên dịch, không thay đổi
-CFLAGS = -std=c11 -Wall -Wextra -D_POSIX_C_SOURCE=200112L -Iutils
+CFLAGS = -Wall -Wextra -g
+LDFLAGS = -lpthread
 
-# VPATH: Chỉ định cho 'make' các thư mục cần tìm kiếm tệp nguồn (.c)
-VPATH = utils:TCP_Client:TCP_Server
-
-# --- Directories and Targets ---
+# Directories
 BUILD_DIR = build
-TARGET_CLIENT = $(BUILD_DIR)/client
-TARGET_SERVER = $(BUILD_DIR)/server
+SERVER_DIR = FTP_Server
+CLIENT_DIR = FTP_Client
+UTILS_DIR = utils
 
-# --- Source and Object Files ---
-UTILS_SRC = $(wildcard utils/*.c)
-CLIENT_SRC = TCP_Client/TCP_Client.c
-SERVER_SRC = TCP_Server/TCP_Server.c
+# Output binaries
+SERVER_BIN = $(BUILD_DIR)/ftp_server
+CLIENT_BIN = $(BUILD_DIR)/ftp_client
 
-# SỬA LỖI TẠI ĐÂY: Sửa $(UTILS_SRCS) thành $(UTILS_SRC)
-UTILS_OBJS = $(patsubst utils/%.c, $(BUILD_DIR)/%.o, $(UTILS_SRC))
-CLIENT_OBJ = $(patsubst TCP_Client/%.c, $(BUILD_DIR)/%.o, $(CLIENT_SRC))
-SERVER_OBJ = $(patsubst TCP_Server/%.c, $(BUILD_DIR)/%.o, $(SERVER_SRC))
+# Source files
+SERVER_SRCS = $(SERVER_DIR)/ftp_server.c \
+              $(SERVER_DIR)/ftp_commands.c \
+              $(SERVER_DIR)/ftp_data.c \
+              $(SERVER_DIR)/ftp_utils.c \
+              $(UTILS_DIR)/account.c \
+              $(UTILS_DIR)/logging.c \
+              $(UTILS_DIR)/utils.c
 
+CLIENT_SRCS = $(CLIENT_DIR)/ftp_client.c
 
-.PHONY: all clean
+# Object files
+SERVER_OBJS = $(SERVER_SRCS:.c=.o)
+CLIENT_OBJS = $(CLIENT_SRCS:.c=.o)
 
-# Quy tắc mặc định
-all: $(TARGET_CLIENT) $(TARGET_SERVER)
-	@mkdir -p $(BUILD_DIR)/storage
-	@mkdir -p logs
-	@echo "Build complete! Storage and logs directories created."
+# Default target
+all: $(SERVER_BIN) $(CLIENT_BIN)
 
-# --- Linking Rules ---
-# Quy tắc này giờ sẽ hoạt động đúng vì $(UTILS_OBJS) không còn rỗng
-$(TARGET_CLIENT): $(CLIENT_OBJ) $(UTILS_OBJS)
-	@echo "Linking to create $(TARGET_CLIENT)..."
-	$(CC) $^ -o $@ $(LDFLAGS)
+# Create build directory
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
 
-$(TARGET_SERVER): $(SERVER_OBJ) $(UTILS_OBJS)
-	@echo "Linking to create $(TARGET_SERVER)..."
-	$(CC) $^ -o $@ $(LDFLAGS)
+# Build server
+$(SERVER_BIN): $(SERVER_OBJS) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $@ $(SERVER_OBJS) $(LDFLAGS)
+	@echo "✓ FTP Server built successfully!"
 
-# --- Generic Compilation Rule ---
-# Quy tắc mẫu này sẽ biên dịch tất cả các file .c cần thiết
-$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
-	@echo "Compiling $<..."
+# Build client
+$(CLIENT_BIN): $(CLIENT_OBJS) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJS)
+	@echo "✓ FTP Client built successfully!"
+
+# Compile .c files to .o files
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Quy tắc tạo thư mục build
-$(BUILD_DIR):
-	@mkdir -p $@
+# Run server (default port 2121)
+run-server: $(SERVER_BIN)
+	@echo "Starting FTP Server on port 2121..."
+	./$(SERVER_BIN) 2121
 
-# --- Cleanup Rule ---
+# Run client
+run-client: $(CLIENT_BIN)
+	@echo "Starting FTP Client..."
+	./$(CLIENT_BIN)
+
+# Run both (server in background, then client)
+run-both: $(SERVER_BIN) $(CLIENT_BIN)
+	@echo "Starting FTP Server in background..."
+	./$(SERVER_BIN) 2121 &
+	@sleep 1
+	@echo "Starting FTP Client..."
+	./$(CLIENT_BIN)
+
+# Clean build files
 clean:
-	@echo "Cleaning up build artifacts..."
-	rm -rf $(BUILD_DIR)
-package:
-	zip VuQuangDung_20225818_prj.zip TCP_Server/* TCP_Client/* utils/* Makefile 
+	rm -f $(SERVER_OBJS) $(CLIENT_OBJS)
+	rm -f $(SERVER_BIN) $(CLIENT_BIN)
+	@echo "✓ Cleaned build files"
+
+# Clean and rebuild
+rebuild: clean all
+
+# Help target
+help:
+	@echo "FTP Server/Client Makefile"
+	@echo "=========================="
+	@echo "Targets:"
+	@echo "  all         - Build both server and client (default)"
+	@echo "  run-server  - Build and run FTP server on port 2121"
+	@echo "  run-client  - Build and run FTP client"
+	@echo "  run-both    - Run server in background, then client"
+	@echo "  clean       - Remove all build files"
+	@echo "  rebuild     - Clean and rebuild everything"
+	@echo "  help        - Show this help message"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make                    # Build everything"
+	@echo "  make run-server         # Run server"
+	@echo "  make run-client         # Run client"
+	@echo "  make run-both           # Run both"
+
+.PHONY: all clean rebuild run-server run-client run-both help

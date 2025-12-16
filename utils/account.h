@@ -83,4 +83,14 @@ extern char pending_username[1000]; // Username waiting for password verificatio
  *  - 0: error occurred (invalid file, invalid input, memory error, etc.).
  */
 int read_file_data();
+
+/**
+ * @brief Update the root directory for a specific user in account.txt
+ *
+ * @param username The username whose root_dir should be updated
+ * @param new_root_dir The new root directory path
+ * @return 1 on success, 0 on failure
+ */
+int update_user_root_dir(const char* username, const char* new_root_dir);
+
 #endif

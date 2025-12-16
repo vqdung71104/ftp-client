@@ -92,3 +92,46 @@ int read_file_data()
     printf("Total line read: %d\n",count);
     return 1;
 }
+
+int update_user_root_dir(const char* username, const char* new_root_dir)
+{
+    // Find user in memory and update
+    int user_found = 0;
+    for (int i = 0; i < count; i++)
+    {
+        if (strcmp(users[i].username, username) == 0)
+        {
+            strncpy(users[i].root_dir, new_root_dir, sizeof(users[i].root_dir) - 1);
+            users[i].root_dir[sizeof(users[i].root_dir) - 1] = '\0';
+            user_found = 1;
+            break;
+        }
+    }
+
+    if (!user_found)
+    {
+        printf("User '%s' not found in memory\n", username);
+        return 0;
+    }
+
+    // Write all users back to file
+    FILE *fp = fopen("account.txt", "w");
+    if (!fp)
+    {
+        perror("Cannot open account.txt for writing");
+        return 0;
+    }
+
+    for (int i = 0; i < count; i++)
+    {
+        fprintf(fp, "%s %s %s %d\n",
+                users[i].username,
+                users[i].password,
+                users[i].root_dir,
+                users[i].status);
+    }
+
+    fclose(fp);
+    printf("Updated root_dir for user '%s' to '%s' in account.txt\n", username, new_root_dir);
+    return 1;
+}
