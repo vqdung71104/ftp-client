@@ -43,7 +43,7 @@ Dự án này là một ứng dụng FTP (File Transfer Protocol) client-server 
 Sử dụng Makefile để build cả server và client:
 
 ```bash
-make          # Build cả server và client
+make all      # Build cả server và client
 make clean    # Xóa các file build
 make rebuild  # Clean và build lại
 make help     # Hiển thị hướng dẫn
@@ -89,20 +89,11 @@ Mở terminal mới và chạy:
 ```bash
 make run-client
 # hoặc
-./build/ftp_client
+./build/ftp_client 127.0.0.1 2121
 ```
 
-Client sẽ tự động kết nối đến `127.0.0.1:2121`. Để kết nối đến server khác, chỉnh sửa trong mã nguồn.
 
-### 5. Chạy cả Server và Client
-
-```bash
-make run-both
-```
-
-Lệnh này sẽ chạy server ở background, sau đó khởi động client.
-
-### 6. Sử dụng với FileZilla Client
+### 5. Sử dụng với FileZilla Client
 
 FTP Server cũng tương thích với FileZilla Client:
 
@@ -113,7 +104,7 @@ FTP Server cũng tương thích với FileZilla Client:
 5. Port: `2121`
 6. Nhấn "Quickconnect"
 
-### 7. Sử dụng FTP Client Menu
+### 6. Sử dụng FTP Client Menu
 
 Sau khi kết nối thành công, client sẽ hiển thị menu:
 
