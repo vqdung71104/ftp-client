@@ -4,6 +4,7 @@
 #include "../utils/utils.h"
 #include <strings.h>
 #include <ctype.h>
+#include <time.h>
 
 // Global variables from account.c
 extern Account *users;  // Dynamic array, not static array
@@ -12,6 +13,17 @@ extern int count;
 // Load users from account.txt
 void load_users() {
     read_file_data();
+}
+
+// Get current time string in HH:MM:SS
+static void get_current_time_str(char *buf, size_t len) {
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    if (t) {
+        strftime(buf, len, "%d/%m/%Y %H:%M:%S", t);
+    } else {
+        snprintf(buf, len, "--/--/---- --:--:--");
+    }
 }
 
 // Send response to client
@@ -140,10 +152,12 @@ void* handle_client(void* arg) {
     ftp_session_t* session = (ftp_session_t*)arg;
     char buffer[BUFFER_SIZE];
     char command[64], params[1024];
+    char timestr[32];
     
     // Send welcome message
     send_response(session->control_sock, FTP_SERVICE_READY);
-    printf("[%s:%d] New client connected\n", session->client_ip, session->client_port);
+    get_current_time_str(timestr, sizeof(timestr));
+    printf("[%s:%d][%s] New client connected\n", session->client_ip, session->client_port, timestr);
     
     // Main command loop
     while (1) {
@@ -179,8 +193,9 @@ void* handle_client(void* arg) {
             command[i] = toupper(command[i]);
         }
         
-        printf("[%s:%d] Command: %s %s\n", session->client_ip, session->client_port, 
-               command, params);
+         get_current_time_str(timestr, sizeof(timestr));
+         printf("[%s:%d][%s] Command: %s %s\n", session->client_ip, session->client_port,
+             timestr, command, params);
         
         // Dispatch commands
         if (strcmp(command, "USER") == 0) {
@@ -237,7 +252,8 @@ void* handle_client(void* arg) {
     }
     
     // Cleanup
-    printf("[%s:%d] Client disconnected\n", session->client_ip, session->client_port);
+    get_current_time_str(timestr, sizeof(timestr));
+    printf("[%s:%d][%s] Client disconnected\n", session->client_ip, session->client_port, timestr);
     close_data_connection(session);
     close(session->control_sock);
     free(session);
@@ -266,7 +282,7 @@ int main(int argc, char* argv[]) {
     
     // Set socket options
     int opt = 1;
-    setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));//tránh lỗi cổng bận
     
     // Bind to address
     struct sockaddr_in server_addr;

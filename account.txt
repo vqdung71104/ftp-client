@@ -1,4 +1,4 @@
-admin 123456 /mnt/d/ftp-client/FTP_Server1
+admin 123456 /mnt/d/ftp-client/FTP_Server 1
 user1 123456 /mnt/d/ftp-client/FTP_Client/user1 1
 user2 123456 /mnt/d/ftp-client/FTP_Client 0
 banned_user 123456 /mnt/d/ftp-client/FTP_Client 0

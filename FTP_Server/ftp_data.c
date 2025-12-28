@@ -34,6 +34,8 @@ int establish_data_connection(ftp_session_t* session) {
     }
     
     // Enable TCP_NODELAY for better performance
+    //TCP_NODEPLAY cho phép gửi gói tin nhỏ ngay lập tức tahy vì gom lại
+    //--> giảm độ trễ
     int flag = 1;
     setsockopt(data_sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
     

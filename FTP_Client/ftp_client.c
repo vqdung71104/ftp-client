@@ -20,7 +20,13 @@ int logged_in = 0;
 void print_with_timestamp(const char* command, const char* response) {
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
-    printf("%02d:%02d:%02d %s %s\n", t->tm_hour, t->tm_min, t->tm_sec, command, response);
+    char timebuf[32];
+    if (t) {
+        strftime(timebuf, sizeof(timebuf), "%d/%m/%Y %H:%M:%S", t);
+    } else {
+        snprintf(timebuf, sizeof(timebuf), "--/--/---- --:--:--");
+    }
+    printf("[%s] %s %s\n", timebuf, command, response);
 }
 
 // Send command to server
